@@ -34,8 +34,9 @@ body {
 /* --- FLOATING MENU BTN --- */
 .menu-btn {
     position: absolute;
-    top: 25px;
-    left: 25px;
+    /* iPhone Çentiği (Notch) için Güvenli Alan */
+    top: calc(env(safe-area-inset-top) + 20px);
+    left: 20px;
     font-size: 2rem;
     cursor: pointer;
     z-index: 5000;
@@ -64,7 +65,8 @@ body {
     backdrop-filter: blur(10px);
     z-index: 6000;
     transition: left 0.3s ease-in-out;
-    padding: 20px;
+    /* Menü içeriği de çentikten etkilenmesin */
+    padding: calc(env(safe-area-inset-top) + 20px) 20px 20px 20px;
     color: #333;
     box-shadow: 5px 0 15px rgba(0, 0, 0, 0.1);
 }
@@ -142,8 +144,8 @@ body {
     display: none;
     flex: 1;
     animation: fadeIn 0.5s ease;
-    padding-top: 20px;
-    /* Üstten biraz boşluk */
+    /* Sayfa içeriği çentiğin altında başlasın */
+    padding-top: calc(env(safe-area-inset-top) + 10px);
 }
 
 .active-page {
@@ -169,7 +171,7 @@ body {
 /* --- HOME PAGE (SCREENSHOT MATCH) --- */
 .home-header-text {
     text-align: center;
-    margin-top: 60px;
+    margin-top: 50px;
     margin-bottom: 30px;
 }
 
@@ -286,6 +288,8 @@ h1 {
     opacity: 0.8;
     letter-spacing: 2px;
     font-weight: 300;
+    /* Home Indicator için alt boşluk */
+    padding-bottom: calc(env(safe-area-inset-bottom) + 20px);
 }
 
 /* --- JOURNAL PAGE --- */
