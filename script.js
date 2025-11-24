@@ -25,46 +25,31 @@ function updateCounter() {
 setInterval(updateCounter, 1000);
 updateCounter();
 
-// Müzik Kontrolü
+// Müzik Kontrolü (Görünmez & Otomatik)
 const bgMusic = document.getElementById('bg-music');
-const musicBtn = document.getElementById('music-btn');
-let isMusicPlaying = false;
-
-function toggleMusic() {
-    if (bgMusic.paused) {
-        bgMusic.play().then(() => {
-            isMusicPlaying = true;
-            musicBtn.textContent = "🔇"; // Çalıyorsa sustur ikonu
-        }).catch(e => console.log("Müzik hatası:", e));
-    } else {
-        bgMusic.pause();
-        isMusicPlaying = false;
-        musicBtn.textContent = "🎵"; // Susmuşsa çal ikonu
-    }
-}
-
-musicBtn.addEventListener('click', toggleMusic);
 
 // Sayfa yüklendiğinde otomatik çalmayı dene
 window.addEventListener('load', () => {
-    bgMusic.volume = 0.5; // Ses seviyesi %50
-    bgMusic.play().then(() => {
-        isMusicPlaying = true;
-        musicBtn.textContent = "🔇";
-    }).catch(() => {
-        // Otomatik çalma engellendiyse, ilk dokunuşta çal
-        console.log("Otomatik çalma engellendi, dokunuş bekleniyor.");
-        const unlockAudio = () => {
-            bgMusic.play().then(() => {
-                isMusicPlaying = true;
-                musicBtn.textContent = "🔇";
-                document.body.removeEventListener('click', unlockAudio);
-                document.body.removeEventListener('touchstart', unlockAudio);
-            });
-        };
-        document.body.addEventListener('click', unlockAudio);
-        document.body.addEventListener('touchstart', unlockAudio);
-    });
+    bgMusic.volume = 0.5;
+    const playPromise = bgMusic.play();
+
+    if (playPromise !== undefined) {
+        playPromise.then(() => {
+            console.log("Otomatik oynatma başarılı.");
+        }).catch(error => {
+            console.log("Otomatik oynatma engellendi. Kullanıcı etkileşimi bekleniyor.");
+            // Otomatik çalma başarısız olursa, kullanıcının herhangi bir yere dokunmasını bekle
+            const unlockAudio = () => {
+                bgMusic.play();
+                // Olay dinleyicilerini temizle ki tekrar tekrar tetiklenmesin
+                document.removeEventListener('click', unlockAudio);
+                document.removeEventListener('touchstart', unlockAudio);
+            };
+
+            document.addEventListener('click', unlockAudio);
+            document.addEventListener('touchstart', unlockAudio);
+        });
+    }
 });
 
 
@@ -132,6 +117,14 @@ menuItems.forEach(item => {
 });
 
 
+// Yardımcı Fonksiyon: Yerel Tarih Stringi (YYYY-MM-DD)
+function getLocalDateString() {
+    const now = new Date();
+    const offset = now.getTimezoneOffset();
+    const local = new Date(now.getTime() - (offset * 60 * 1000));
+    return local.toISOString().split('T')[0];
+}
+
 // --- ANI DEFTERİ (JOURNAL) ---
 const journalDate = document.getElementById('journal-date');
 const journalLocation = document.getElementById('journal-location');
@@ -140,10 +133,8 @@ const addNoteBtn = document.getElementById('add-note-btn');
 const journalList = document.getElementById('journal-list');
 const getLocationBtn = document.getElementById('get-location-btn');
 
-// Bugünün tarihini ayarla (Yerel saat)
-const today = new Date();
-const localDate = new Date(today.getTime() - (today.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
-journalDate.value = localDate;
+// Bugünün tarihini ayarla
+journalDate.value = getLocalDateString();
 
 getLocationBtn.addEventListener('click', () => {
     if (!navigator.geolocation) {
@@ -206,8 +197,6 @@ addNoteBtn.addEventListener('click', async () => {
 });
 
 function formatDateManual(dateStr) {
-    // "2025-11-23" formatındaki stringi manuel olarak parçala ve formatla
-    // Bu yöntem Timezone dönüşümlerinden etkilenmez.
     if (!dateStr) return "";
     const months = [
         "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
@@ -221,22 +210,53 @@ function formatDateManual(dateStr) {
     return `${day} ${months[monthIndex]} ${year}`;
 }
 
+let unsubscribeJournal = null; // Dinleyiciyi durdurmak için
+
 function renderMemories() {
     journalList.innerHTML = '';
+    const selectedDate = journalDate.value;
+
     if (isFirebaseActive) {
-        db.collection("memories").orderBy("date", "desc").onSnapshot(snapshot => {
+        // Önceki dinleyiciyi temizle (varsa)
+        if (unsubscribeJournal) {
+            unsubscribeJournal();
+        }
+
+        let query = db.collection("memories");
+
+        // Eğer tarih seçiliyse, o tarihe göre filtrele
+        if (selectedDate) {
+            query = query.where("date", "==", selectedDate);
+        }
+
+        // Sıralama: Tarih seçiliyse timestamp'e göre, değilse tarihe göre
+        // Not: Firestore'da 'where' ve 'orderBy' farklı alanlardaysa index gerekir.
+        // Basitlik için: Tarih seçiliyse client-side sıralama veya sadece eklenme sırası yeterli.
+        // Karmaşıklığı önlemek için sadece filtreliyoruz, sıralamayı client'ta yapabiliriz veya index hatası almamak için orderBy'ı kaldırabiliriz.
+
+        unsubscribeJournal = query.onSnapshot(snapshot => {
             journalList.innerHTML = '';
+            const memories = [];
             snapshot.forEach(doc => {
-                createMemoryCard(doc.data(), doc.id);
+                memories.push({ id: doc.id, ...doc.data() });
             });
+
+            // Client-side sıralama (En yeni en üstte)
+            memories.sort((a, b) => (b.timestamp || '').localeCompare(a.timestamp || ''));
+
+            if (memories.length === 0) {
+                journalList.innerHTML = '<div class="empty-state">Bu tarihte anı yok.</div>';
+                return;
+            }
+
+            memories.forEach(memory => createMemoryCard(memory, memory.id));
         });
+
     } else {
         let memories = JSON.parse(localStorage.getItem('memories') || '[]');
-        const selectedDate = journalDate.value;
         if (selectedDate) {
             memories = memories.filter(m => m.date === selectedDate);
         }
-        // String karşılaştırması (YYYY-MM-DD formatı sıralama için uygundur)
         memories.sort((a, b) => b.date.localeCompare(a.date));
 
         if (memories.length === 0) {
@@ -251,7 +271,6 @@ function createMemoryCard(data, id) {
     const card = document.createElement('div');
     card.className = 'journal-card fade-in';
 
-    // Manuel formatlama kullan
     const dateStr = formatDateManual(data.date);
 
     card.innerHTML = `
@@ -289,6 +308,8 @@ const lightboxImg = document.getElementById('lightbox-img');
 const closeLightbox = document.querySelector('.close-lightbox');
 const uploadStatus = document.getElementById('upload-status');
 const uploadMsg = document.getElementById('upload-msg');
+
+let unsubscribePhotos = null;
 
 photoFilterDate.addEventListener('change', renderPhotos);
 clearFilterBtn.addEventListener('click', () => {
@@ -337,7 +358,9 @@ function hideUploadStatus() {
 photoUpload.addEventListener('change', async (e) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
-    const uploadDate = new Date().toISOString().split('T')[0];
+
+    // DÜZELTME: UTC yerine Yerel Tarih Stringi kullan
+    const uploadDate = getLocalDateString();
     const totalFiles = files.length;
 
     showUploadStatus(`${totalFiles} fotoğraf hazırlanıyor...`);
@@ -369,16 +392,29 @@ function renderPhotos() {
     const filterDate = photoFilterDate.value;
 
     if (isFirebaseActive) {
-        db.collection("photos").orderBy("timestamp", "desc").onSnapshot(snapshot => {
+        if (unsubscribePhotos) unsubscribePhotos();
+
+        let query = db.collection("photos");
+        if (filterDate) {
+            query = query.where("date", "==", filterDate);
+        }
+
+        unsubscribePhotos = query.onSnapshot(snapshot => {
             photoGrid.innerHTML = '';
-            let hasPhoto = false;
+            const photos = [];
             snapshot.forEach(doc => {
-                const data = doc.data();
-                if (filterDate && data.date !== filterDate) return;
-                createPhotoElement(data.url, doc.id);
-                hasPhoto = true;
+                photos.push({ id: doc.id, ...doc.data() });
             });
-            if (!hasPhoto) photoGrid.innerHTML = '<div class="empty-state">Fotoğraf bulunamadı.</div>';
+
+            // Client-side sıralama
+            photos.sort((a, b) => (b.timestamp || '').localeCompare(a.timestamp || ''));
+
+            if (photos.length === 0) {
+                photoGrid.innerHTML = '<div class="empty-state">Fotoğraf bulunamadı.</div>';
+                return;
+            }
+
+            photos.forEach(photo => createPhotoElement(photo.url, photo.id));
         });
     } else {
         let photos = JSON.parse(localStorage.getItem('photos') || '[]');
