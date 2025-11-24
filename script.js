@@ -124,7 +124,10 @@ const addNoteBtn = document.getElementById('add-note-btn');
 const journalList = document.getElementById('journal-list');
 const getLocationBtn = document.getElementById('get-location-btn');
 
-journalDate.valueAsDate = new Date();
+// Bugünün tarihini YEREL SAAT ile ayarla (UTC sorununu çözer)
+const today = new Date();
+const localDate = new Date(today.getTime() - (today.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+journalDate.value = localDate;
 
 getLocationBtn.addEventListener('click', () => {
     if (!navigator.geolocation) {
