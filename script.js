@@ -1,5 +1,4 @@
 // Sabit Başlangıç Tarihi: 30 Kasım 2018
-// Aylar 0'dan başlar: Kasım = 10
 const startDate = new Date('2018-11-30T00:00:00');
 
 // DOM Elementleri
@@ -12,43 +11,61 @@ function updateCounter() {
     const now = new Date();
     const diff = now - startDate;
 
-    // Zaman birimleri hesaplama
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
     const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
     const minutes = Math.floor((diff / (1000 * 60)) % 60);
     const seconds = Math.floor((diff / 1000) % 60);
 
-    // Ekrana yazdırma (Çift haneli formatlama)
     daysEl.textContent = days;
     hoursEl.textContent = hours.toString().padStart(2, '0');
     minutesEl.textContent = minutes.toString().padStart(2, '0');
     secondsEl.textContent = seconds.toString().padStart(2, '0');
 }
 
-// Sayacı başlat
 setInterval(updateCounter, 1000);
 updateCounter();
 
 // Müzik Kontrolü
 const bgMusic = document.getElementById('bg-music');
+const musicBtn = document.getElementById('music-btn');
+let isMusicPlaying = false;
 
+function toggleMusic() {
+    if (bgMusic.paused) {
+        bgMusic.play().then(() => {
+            isMusicPlaying = true;
+            musicBtn.textContent = "🔇"; // Çalıyorsa sustur ikonu
+        }).catch(e => console.log("Müzik hatası:", e));
+    } else {
+        bgMusic.pause();
+        isMusicPlaying = false;
+        musicBtn.textContent = "🎵"; // Susmuşsa çal ikonu
+    }
+}
+
+musicBtn.addEventListener('click', toggleMusic);
+
+// Sayfa yüklendiğinde otomatik çalmayı dene
 window.addEventListener('load', () => {
-    bgMusic.currentTime = 45; // Nakarat başlangıcı
-    bgMusic.play().catch(error => {
-        console.log("Otomatik oynatma engellendi.", error);
+    bgMusic.volume = 0.5; // Ses seviyesi %50
+    bgMusic.play().then(() => {
+        isMusicPlaying = true;
+        musicBtn.textContent = "🔇";
+    }).catch(() => {
+        // Otomatik çalma engellendiyse, ilk dokunuşta çal
+        console.log("Otomatik çalma engellendi, dokunuş bekleniyor.");
+        const unlockAudio = () => {
+            bgMusic.play().then(() => {
+                isMusicPlaying = true;
+                musicBtn.textContent = "🔇";
+                document.body.removeEventListener('click', unlockAudio);
+                document.body.removeEventListener('touchstart', unlockAudio);
+            });
+        };
+        document.body.addEventListener('click', unlockAudio);
+        document.body.addEventListener('touchstart', unlockAudio);
     });
 });
-
-document.body.addEventListener('click', () => {
-    if (bgMusic.paused) {
-        bgMusic.play().catch(e => console.log("Müzik başlatılamadı:", e));
-    }
-}, { once: true });
-document.body.addEventListener('touchstart', () => {
-    if (bgMusic.paused) {
-        bgMusic.play().catch(e => console.log("Müzik başlatılamadı:", e));
-    }
-}, { once: true });
 
 
 // --- FIREBASE AYARLARI ---
@@ -100,7 +117,6 @@ menuItems.forEach(item => {
     item.addEventListener('click', () => {
         menuItems.forEach(i => i.classList.remove('active'));
         item.classList.add('active');
-
         const targetId = item.getAttribute('data-target');
         pages.forEach(page => {
             if (page.id === targetId) {
@@ -124,7 +140,7 @@ const addNoteBtn = document.getElementById('add-note-btn');
 const journalList = document.getElementById('journal-list');
 const getLocationBtn = document.getElementById('get-location-btn');
 
-// Bugünün tarihini YEREL SAAT ile ayarla (UTC sorununu çözer)
+// Bugünün tarihini ayarla (Yerel saat)
 const today = new Date();
 const localDate = new Date(today.getTime() - (today.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
 journalDate.value = localDate;
@@ -135,13 +151,10 @@ getLocationBtn.addEventListener('click', () => {
         return;
     }
     getLocationBtn.textContent = "İzin bekleniyor...";
-    alert("Konum izni isteği gönderilecek. Lütfen 'İzin Ver'i seçin.");
-
     navigator.geolocation.getCurrentPosition(async (position) => {
         const lat = position.coords.latitude;
         const lon = position.coords.longitude;
         getLocationBtn.textContent = "Adres bulunuyor...";
-
         try {
             const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`);
             const data = await response.json();
@@ -171,14 +184,7 @@ addNoteBtn.addEventListener('click', async () => {
         return;
     }
 
-    // Tarih formatını düzelt (Timezone sorununu önlemek için)
-    // input type="date" bize "YYYY-MM-DD" verir. Bunu doğrudan kullanacağız.
-    const memory = {
-        date, // "2023-11-23" gibi string olarak sakla
-        location,
-        note,
-        timestamp: new Date().toISOString()
-    };
+    const memory = { date, location, note, timestamp: new Date().toISOString() };
 
     if (isFirebaseActive) {
         try {
@@ -199,6 +205,22 @@ addNoteBtn.addEventListener('click', async () => {
     journalNote.value = '';
 });
 
+function formatDateManual(dateStr) {
+    // "2025-11-23" formatındaki stringi manuel olarak parçala ve formatla
+    // Bu yöntem Timezone dönüşümlerinden etkilenmez.
+    if (!dateStr) return "";
+    const months = [
+        "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
+        "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"
+    ];
+    const parts = dateStr.split('-');
+    const year = parts[0];
+    const monthIndex = parseInt(parts[1]) - 1;
+    const day = parseInt(parts[2]);
+
+    return `${day} ${months[monthIndex]} ${year}`;
+}
+
 function renderMemories() {
     journalList.innerHTML = '';
     if (isFirebaseActive) {
@@ -212,10 +234,9 @@ function renderMemories() {
         let memories = JSON.parse(localStorage.getItem('memories') || '[]');
         const selectedDate = journalDate.value;
         if (selectedDate) {
-            // String karşılaştırması yap (Timezone'dan etkilenmez)
             memories = memories.filter(m => m.date === selectedDate);
         }
-        // Sıralama
+        // String karşılaştırması (YYYY-MM-DD formatı sıralama için uygundur)
         memories.sort((a, b) => b.date.localeCompare(a.date));
 
         if (memories.length === 0) {
@@ -230,11 +251,8 @@ function createMemoryCard(data, id) {
     const card = document.createElement('div');
     card.className = 'journal-card fade-in';
 
-    // Tarihi düzgün göstermek için string'i parse et
-    // "2023-11-23" -> 23 Kasım 2023
-    const parts = data.date.split('-');
-    const dateObj = new Date(parts[0], parts[1] - 1, parts[2]);
-    const dateStr = dateObj.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
+    // Manuel formatlama kullan
+    const dateStr = formatDateManual(data.date);
 
     card.innerHTML = `
         <div class="journal-header">

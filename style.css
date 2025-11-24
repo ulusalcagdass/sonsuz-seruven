@@ -10,13 +10,6 @@
 
 body {
     font-family: 'Montserrat', sans-serif;
-    /* Daha koyu, "gül kurusu" tonlarında gradient */
-    background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%);
-    /* Bu çok mavi oldu, vazgeçtim */
-    background: linear-gradient(135deg, #fbc2eb 0%, #a6c1ee 100%);
-    /* Bu da değil */
-    background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 99%, #fecfef 100%);
-    /* Eskiye yakın ama... */
     /* Kullanıcının istediği: "Aşırı toz pembe olmasın, biraz koyult" */
     background: linear-gradient(135deg, #e684ae 0%, #ffb7b2 100%);
     color: #fff;
@@ -26,7 +19,63 @@ body {
     flex-direction: column;
 }
 
-/* ... */
+.app-container {
+    width: 100%;
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 20px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    z-index: 10;
+}
+
+/* --- HEADER --- */
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    margin-bottom: 20px;
+}
+
+.menu-btn {
+    font-size: 1.8rem;
+    cursor: pointer;
+    z-index: 1001;
+}
+
+.logo {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.5rem;
+    font-weight: 600;
+    letter-spacing: 1px;
+}
+
+.header-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.icon-btn-header {
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 50%;
+    transition: background 0.2s;
+}
+
+.icon-btn-header:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.profile-icon {
+    font-size: 1.5rem;
+}
 
 /* --- SIDE MENU --- */
 .side-menu {
@@ -145,12 +194,11 @@ body {
     text-align: center;
     margin-top: 20px;
     padding: 2rem;
-    background: rgba(255, 255, 255, 0.6);
-    /* Daha opak beyaz */
+    background: rgba(255, 255, 255, 0.15);
     border-radius: 30px;
     backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.5);
-    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
 }
 
 .heart-beat {
@@ -158,8 +206,6 @@ body {
     margin-bottom: 1rem;
     animation: heartbeat 1.5s infinite;
     display: inline-block;
-    color: #ff758c;
-    /* Kalp rengi */
 }
 
 @keyframes heartbeat {
@@ -189,9 +235,7 @@ h1 {
     font-size: 2.5rem;
     font-weight: 300;
     margin-bottom: 2rem;
-    color: #444;
-    /* Başlık rengi */
-    text-shadow: none;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .counter-container {
@@ -202,12 +246,11 @@ h1 {
 }
 
 .time-box {
-    background: rgba(255, 255, 255, 0.8);
+    background: rgba(255, 255, 255, 0.25);
     padding: 1.5rem;
     border-radius: 20px;
     backdrop-filter: blur(5px);
-    border: 1px solid rgba(0, 0, 0, 0.05);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
 .time-box span {
@@ -215,17 +258,14 @@ h1 {
     font-size: 2.5rem;
     font-weight: 600;
     font-family: 'Cormorant Garamond', serif;
-    color: #ff758c;
-    /* Sayaç rakamları */
 }
 
 .time-box p {
     font-size: 0.9rem;
     text-transform: uppercase;
     letter-spacing: 2px;
-    opacity: 0.7;
+    opacity: 0.9;
     margin-top: 5px;
-    color: #666;
 }
 
 .sub-text {
@@ -233,7 +273,6 @@ h1 {
     font-style: italic;
     font-size: 1.2rem;
     opacity: 0.8;
-    color: #555;
 }
 
 /* --- JOURNAL PAGE --- */
@@ -242,11 +281,10 @@ h2 {
     font-size: 2rem;
     margin-bottom: 1.5rem;
     text-align: center;
-    color: #444;
 }
 
 .journal-input-card {
-    background: rgba(255, 255, 255, 0.7);
+    background: rgba(255, 255, 255, 0.2);
     padding: 1.5rem;
     border-radius: 20px;
     backdrop-filter: blur(10px);
@@ -254,7 +292,6 @@ h2 {
     display: flex;
     flex-direction: column;
     gap: 15px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
 }
 
 .journal-input-card input,
@@ -262,8 +299,8 @@ h2 {
     width: 100%;
     padding: 12px;
     border-radius: 12px;
-    border: 1px solid #eee;
-    background: #fff;
+    border: none;
+    background: rgba(255, 255, 255, 0.9);
     font-family: 'Montserrat', sans-serif;
     font-size: 1rem;
     color: #333;
@@ -276,17 +313,11 @@ h2 {
 
 .icon-btn {
     background: #fff;
-    border: 1px solid #eee;
+    border: none;
     border-radius: 12px;
     padding: 0 15px;
     cursor: pointer;
     font-size: 1.2rem;
-    color: #555;
-    transition: all 0.2s;
-}
-
-.icon-btn:hover {
-    background: #f9f9f9;
 }
 
 .primary-btn {
@@ -298,12 +329,7 @@ h2 {
     font-size: 1rem;
     font-weight: 600;
     cursor: pointer;
-    transition: transform 0.2s, background 0.2s;
-    box-shadow: 0 5px 15px rgba(255, 117, 140, 0.3);
-}
-
-.primary-btn:hover {
-    background: #ff5e78;
+    transition: transform 0.2s;
 }
 
 .primary-btn:active {
@@ -317,13 +343,12 @@ h2 {
 }
 
 .journal-card {
-    background: #fff;
+    background: rgba(255, 255, 255, 0.9);
     color: #333;
     padding: 1.5rem;
     border-radius: 20px;
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
     position: relative;
-    border: 1px solid #f0f0f0;
 }
 
 .journal-header {
@@ -368,23 +393,22 @@ h2 {
 /* --- ALBUM PAGE --- */
 .upload-card {
     text-align: center;
-    background: rgba(255, 255, 255, 0.7);
+    background: rgba(255, 255, 255, 0.15);
     padding: 2rem;
     border-radius: 20px;
-    border: 2px dashed #ffb7b2;
+    border: 2px dashed rgba(255, 255, 255, 0.5);
     margin-bottom: 2rem;
 }
 
 .upload-btn {
     display: inline-block;
-    background: #ff758c;
-    /* Buton rengini belirginleştirdik */
-    color: #fff;
+    background: #fff;
+    color: #ff758c;
     padding: 12px 25px;
     border-radius: 30px;
     font-weight: 600;
     cursor: pointer;
-    box-shadow: 0 5px 15px rgba(255, 117, 140, 0.3);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
     transition: transform 0.2s;
 }
 
@@ -396,7 +420,6 @@ h2 {
     margin-top: 10px;
     font-size: 0.9rem;
     opacity: 0.8;
-    color: #666;
 }
 
 .filter-bar {
@@ -409,16 +432,15 @@ h2 {
     flex: 1;
     padding: 10px;
     border-radius: 10px;
-    border: 1px solid #eee;
-    background: #fff;
-    color: #333;
+    border: none;
+    background: rgba(255, 255, 255, 0.9);
 }
 
 .filter-bar button {
     padding: 10px 15px;
     border-radius: 10px;
     border: none;
-    background: #666;
+    background: rgba(255, 255, 255, 0.3);
     color: white;
     cursor: pointer;
 }
