@@ -20,139 +20,14 @@
         href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,600;1,400&family=Montserrat:wght@300;400;500&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <!-- Leaflet Map CSS & JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 </head>
 
 <body>
-    <div class="background-animation"></div>
-
-
-
-    <!-- Navigation Menu -->
-    <div id="menu-btn" class="menu-btn">
-        <div class="bar"></div>
-        <div class="bar"></div>
-        <div class="bar"></div>
-    </div>
-
-    <nav id="side-menu" class="side-menu">
-        <div class="menu-header">
-            <h2>Menü</h2>
-            <button id="close-menu">&times;</button>
-        </div>
-        <ul>
-            <li data-target="home-page" class="active">Ana Sayfa</li>
-            <li data-target="journal-page">Anı Defteri</li>
-            <li data-target="album-page">Fotoğraf Albümü</li>
-        </ul>
-    </nav>
-    <div id="menu-overlay" class="menu-overlay"></div>
-
-
-
-    <!-- Main Container holding all pages -->
-    <main class="app-container" id="main-content">
-
-        <!-- PAGE: HOME -->
-        <section id="home-page" class="page active-page">
-            <header class="fade-in">
-                <h1>Beyza Ve Çağdaş'ın<br>Sonsuz Serüveni</h1>
-                <p class="subtitle">Her geçen gün daha da güzelleşiyor...</p>
-            </header>
-
-            <div class="counter-card glass fade-in-delay">
-                <div class="heart-icon">❤️</div>
-                <h2>Birlikte Geçen Süre</h2>
-                <div id="counter" class="counter-display">
-                    <div class="time-unit">
-                        <span id="days">0</span>
-                        <span class="label">Gün</span>
-                    </div>
-                    <div class="separator">:</div>
-                    <div class="time-unit">
-                        <span id="hours">00</span>
-                        <span class="label">Saat</span>
-                    </div>
-                    <div class="separator">:</div>
-                    <div class="time-unit">
-                        <span id="minutes">00</span>
-                        <span class="label">Dakika</span>
-                    </div>
-                    <div class="separator">:</div>
-                    <div class="time-unit">
-                        <span id="seconds">00</span>
-                        <span class="label">Saniye</span>
-                    </div>
-                </div>
-            </div>
-
-            <footer class="fade-in-delay-2">
-                <p>Seni Çok Seviyorum</p>
-            </footer>
-        </section>
-
-        <!-- PAGE: JOURNAL -->
-        <section id="journal-page" class="page hidden-page">
-            <header>
-                <h2>Anı Defteri</h2>
-                <p>Birlikte biriktirdiğimiz anılar...</p>
-            </header>
-
-            <div class="glass form-card">
-                <input type="date" id="journal-date" class="input-field">
-                <div style="text-align: left; width: 100%;">
-                    <button id="get-location-btn" type="button">📍 Konumu Bul</button>
-                </div>
-                <input type="text" id="journal-location" placeholder="Konum (Örn: Kadıköy Moda)" class="input-field">
-                <textarea id="journal-note" placeholder="Bugün neler yaptık? (Örn: Harika bir kahvaltı...)"
-                    class="input-field" rows="3"></textarea>
-                <button id="add-note-btn" class="action-btn">Anı Ekle</button>
-            </div>
-
-            <div id="journal-list" class="scrollable-content">
-                <!-- Anılar buraya gelecek -->
-                <div class="empty-state">Henüz bir anı eklenmedi.</div>
-            </div>
-        </section>
-
-        <!-- PAGE: ALBUM -->
-        <section id="album-page" class="page hidden-page">
-            <header>
-                <h2>Fotoğraf Albümü</h2>
-                <p>En güzel anlarımız...</p>
-            </header>
-
-            <div class="glass upload-card">
-                <label for="photo-upload" class="upload-btn">
-                    <span>📷 Fotoğraf Ekle</span>
-                </label>
-                <input type="file" id="photo-upload" accept="image/*" multiple style="display: none;">
-
-                <div class="filter-container" style="margin-top: 15px;">
-                    <label for="photo-filter-date" style="color: white; font-size: 0.9rem;">Tarihe Göre
-                        Filtrele:</label>
-                    <input type="date" id="photo-filter-date" class="input-field" style="margin-top: 5px;">
-                    <button id="clear-filter-btn" class="action-btn"
-                        style="padding: 5px 10px; font-size: 0.8rem; width: auto; margin-top: 5px;">Tümünü
-                        Göster</button>
-                </div>
-            </div>
-
-            <div id="photo-grid" class="photo-grid scrollable-content">
-                <!-- Fotoğraflar buraya gelecek -->
-                <div class="empty-state">Henüz fotoğraf yok.</div>
-            </div>
-
-            <!-- Lightbox Modal -->
-            <div id="lightbox" class="lightbox">
-                <span class="close-lightbox">&times;</span>
-                <img class="lightbox-content" id="lightbox-img">
-            </div>
-        </section>
-
-        </section>
-
-    </main>
-
     <!-- Upload Status Toast -->
     <div id="upload-status" class="upload-status hidden">
         <div class="spinner"></div>

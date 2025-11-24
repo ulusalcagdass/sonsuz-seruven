@@ -664,6 +664,130 @@ input[type="date"] {
 }
 
 /* Delete Buttons */
+.lightbox-delete-btn:hover {
+    background: #c0392b;
+}
+
+/* --- BUCKET LIST STYLES --- */
+.bucket-input-card {
+    background: rgba(255, 255, 255, 0.15);
+    padding: 1.5rem;
+    border-radius: 20px;
+    backdrop-filter: blur(10px);
+    margin-bottom: 2rem;
+    display: flex;
+    gap: 10px;
+}
+
+.bucket-input-card input {
+    flex: 1;
+    padding: 12px;
+    border-radius: 12px;
+    border: none;
+    background: rgba(255, 255, 255, 0.9);
+    font-size: 1rem;
+}
+
+.bucket-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.bucket-item {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 1rem;
+    border-radius: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: all 0.3s ease;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.bucket-item.completed {
+    background: rgba(46, 204, 113, 0.2);
+    border-color: rgba(46, 204, 113, 0.4);
+}
+
+.bucket-item.completed span {
+    text-decoration: line-through;
+    opacity: 0.7;
+}
+
+.bucket-content {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex: 1;
+    cursor: pointer;
+}
+
+.bucket-checkbox {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s;
+}
+
+.bucket-item.completed .bucket-checkbox {
+    background: #fff;
+    color: #2ecc71;
+}
+
+/* --- MAP STYLES --- */
+#map {
+    width: 100%;
+    height: 60vh;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    z-index: 1;
+}
+
+.map-hint {
+    text-align: center;
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+    opacity: 0.8;
+}
+
+/* --- DYNAMIC HOME WIDGET STYLES --- */
+#home-page {
+    position: relative;
+    overflow: hidden;
+}
+
+.home-bg-slideshow {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    background-size: cover;
+    background-position: center;
+    transition: background-image 1s ease-in-out;
+    opacity: 0.4;
+    /* İçerik okunsun diye biraz soluk */
+    filter: blur(5px);
+}
+
+.hero-section {
+    /* Glassmorphism güçlendirildi */
+    background: rgba(0, 0, 0, 0.3);
+    padding: 2rem;
+    border-radius: 30px;
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+/* Delete Buttons */
 .delete-btn {
     background: none;
     border: none;
