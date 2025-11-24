@@ -53,6 +53,8 @@ window.addEventListener('load', () => {
 });
 
 
+
+
 // --- FIREBASE AYARLARI ---
 const firebaseConfig = {
     apiKey: "AIzaSyBu2e7VWVv5B7GWNHdHzJQgurY37pJgINg",

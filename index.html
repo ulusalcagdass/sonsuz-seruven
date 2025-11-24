@@ -25,129 +25,132 @@
 <body>
 
     <!-- Arka Plan Müzik -->
-    <audio id="bg-music" loop autoplay>
+    <audio id="bg-music" loop>
         <source
             src="https://cdn.pixabay.com/download/audio/2022/10/25/audio_1d429db7d9.mp3?filename=romantic-piano-124978.mp3"
             type="audio/mpeg">
     </audio>
 
     <div class="app-container">
-        <div class="app-container">
-            <!-- Floating Menu Button -->
-            <div class="menu-btn" id="menu-btn">☰</div>
 
-            <!-- Side Menu -->
-            <div class="menu-overlay" id="menu-overlay"></div>
-            <nav class="side-menu" id="side-menu">
-                <div class="menu-header">
-                    <span>Menü</span>
-                    <button id="close-menu">✕</button>
+        <!-- Floating Menu Button -->
+        <div class="menu-btn" id="menu-btn">☰</div>
+
+        <!-- Side Menu -->
+        <div class="menu-overlay" id="menu-overlay"></div>
+        <nav class="side-menu" id="side-menu">
+            <div class="menu-header">
+                <span>Menü</span>
+                <button id="close-menu">✕</button>
+            </div>
+            <ul>
+                <li data-target="home-page" class="active">⏳ Sayaç</li>
+                <li data-target="journal-page">📖 Anı Defteri</li>
+                <li data-target="album-page">📸 Fotoğraf Albümü</li>
+            </ul>
+        </nav>
+
+        <!-- Pages Container -->
+        <main id="main-content">
+
+            <!-- 1. HOME PAGE (Sayaç) -->
+            <section id="home-page" class="page active-page">
+
+                <!-- Header Text (Outside Card) -->
+                <div class="home-header-text">
+                    <h1>Beyza Ve Çağdaş'ın<br>Sonsuz Serüveni</h1>
+                    <p class="sub-text">Her geçen gün daha da güzelleşiyor...</p>
                 </div>
-                <ul>
-                    <li data-target="home-page" class="active">⏳ Sayaç</li>
-                    <li data-target="journal-page">📖 Anı Defteri</li>
-                    <li data-target="album-page">📸 Fotoğraf Albümü</li>
-                </ul>
-            </nav>
 
-            <!-- Pages Container -->
-            <main id="main-content">
+                <!-- Glass Card -->
+                <div class="glass-card">
+                    <div class="heart-icon">❤️</div>
+                    <div class="card-label">Birlikte Geçen Süre</div>
 
-                <!-- 1. HOME PAGE (Sayaç) -->
-                <section id="home-page" class="page active-page">
-                    <!-- Title & Subtext OUTSIDE the card -->
-                    <div class="home-header">
-                        <h1>Beyza Ve Çağdaş'ın<br>Sonsuz Serüveni</h1>
-                        <p class="sub-text">Her geçen gün daha da güzelleşiyor...</p>
-                    </div>
-
-                    <!-- Glass Card -->
-                    <div class="hero-section">
-                        <div class="heart-beat">❤️</div>
-                        <div class="counter-label">Birlikte Geçen Süre</div>
-                        <div class="counter-container">
-                            <div class="time-box">
-                                <span id="days">00</span>
-                                <p>Gün</p>
-                            </div>
-                            <div class="time-box">
-                                <span id="hours">00</span>
-                                <p>Saat</p>
-                            </div>
-                            <div class="time-box">
-                                <span id="minutes">00</span>
-                                <p>Dakika</p>
-                            </div>
-                            <div class="time-box">
-                                <span id="seconds">00</span>
-                                <p>Saniye</p>
-                            </div>
+                    <div class="counter-grid">
+                        <div class="time-item">
+                            <span id="days">00</span>
+                            <p>GÜN</p>
+                        </div>
+                        <div class="time-item">
+                            <span id="hours">00</span>
+                            <p>SAAT</p>
+                        </div>
+                        <div class="time-item">
+                            <span id="minutes">00</span>
+                            <p>DAKİKA</p>
+                        </div>
+                        <div class="time-item full-width">
+                            <span id="seconds">00</span>
+                            <p>SANİYE</p>
                         </div>
                     </div>
+                </div>
 
-                    <!-- Footer Text -->
-                    <p class="footer-text">Seni Çok Seviyorum</p>
-                </section>
+                <!-- Footer Text -->
+                <p class="footer-msg">Seni Çok Seviyorum</p>
 
-                <!-- 2. JOURNAL PAGE -->
-                <section id="journal-page" class="page hidden-page">
-                    <h2>Anı Defteri</h2>
-                    <div class="journal-input-card">
-                        <input type="date" id="journal-date">
-                        <div class="location-wrapper">
-                            <input type="text" id="journal-location" placeholder="Konum">
-                            <button id="get-location-btn" class="icon-btn">📍 Konumu Bul</button>
-                        </div>
-                        <textarea id="journal-note" placeholder="Örn: Çay içtik, kahvaltı ettik..."></textarea>
-                        <button id="add-note-btn" class="primary-btn">Anıyı Kaydet</button>
+            </section>
+
+            <!-- 2. JOURNAL PAGE -->
+            <section id="journal-page" class="page hidden-page">
+                <h2>Anı Defteri</h2>
+                <div class="journal-input-card">
+                    <input type="date" id="journal-date">
+                    <div class="location-wrapper">
+                        <input type="text" id="journal-location" placeholder="Konum">
+                        <button id="get-location-btn" class="icon-btn">📍 Konumu Bul</button>
                     </div>
-                    <div id="journal-list" class="journal-list">
-                        <!-- Anılar buraya gelecek -->
-                    </div>
-                </section>
+                    <textarea id="journal-note" placeholder="Örn: Çay içtik, kahvaltı ettik..."></textarea>
+                    <button id="add-note-btn" class="primary-btn">Anıyı Kaydet</button>
+                </div>
+                <div id="journal-list" class="journal-list">
+                    <!-- Anılar buraya gelecek -->
+                </div>
+            </section>
 
-                <!-- 3. ALBUM PAGE -->
-                <section id="album-page" class="page hidden-page">
-                    <h2>Fotoğraf Albümü</h2>
+            <!-- 3. ALBUM PAGE -->
+            <section id="album-page" class="page hidden-page">
+                <h2>Fotoğraf Albümü</h2>
 
-                    <div class="upload-card">
-                        <label for="photo-upload" class="upload-btn">
-                            📸 Fotoğraf Ekle
-                            <input type="file" id="photo-upload" accept="image/*" multiple hidden>
-                        </label>
-                    </div>
+                <div class="upload-card">
+                    <label for="photo-upload" class="upload-btn">
+                        📸 Fotoğraf Ekle
+                        <input type="file" id="photo-upload" accept="image/*" multiple hidden>
+                    </label>
+                </div>
 
-                    <!-- Upload Status Toast -->
-                    <div id="upload-status" class="upload-status hidden">
-                        <div class="spinner"></div>
-                        <span id="upload-msg">Yükleniyor...</span>
-                    </div>
+                <!-- Upload Status Toast -->
+                <div id="upload-status" class="upload-status hidden">
+                    <div class="spinner"></div>
+                    <span id="upload-msg">Yükleniyor...</span>
+                </div>
 
-                    <div class="filter-bar">
-                        <input type="date" id="photo-filter-date">
-                        <button id="clear-filter-btn">Tümü</button>
-                    </div>
+                <div class="filter-bar">
+                    <input type="date" id="photo-filter-date">
+                    <button id="clear-filter-btn">Tümü</button>
+                </div>
 
-                    <div id="photo-grid" class="photo-grid">
-                        <!-- Fotoğraflar buraya gelecek -->
-                    </div>
-                </section>
+                <div id="photo-grid" class="photo-grid">
+                    <!-- Fotoğraflar buraya gelecek -->
+                </div>
+            </section>
 
-            </main>
-        </div>
+        </main>
+    </div>
 
-        <!-- Lightbox -->
-        <div id="lightbox" class="lightbox">
-            <span class="close-lightbox">&times;</span>
-            <img class="lightbox-content" id="lightbox-img">
-        </div>
+    <!-- Lightbox -->
+    <div id="lightbox" class="lightbox">
+        <span class="close-lightbox">&times;</span>
+        <img class="lightbox-content" id="lightbox-img">
+    </div>
 
-        <!-- Firebase SDKs -->
-        <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-        <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-        <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
 
-        <script src="script.js"></script>
+    <script src="script.js"></script>
 </body>
 
 </html>

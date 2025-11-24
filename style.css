@@ -34,17 +34,23 @@ body {
 /* --- FLOATING MENU BTN --- */
 .menu-btn {
     position: absolute;
-    top: 20px;
-    left: 20px;
+    top: 25px;
+    left: 25px;
     font-size: 2rem;
     cursor: pointer;
-    z-index: 3000;
-    /* En üstte olsun */
-    color: rgba(255, 255, 255, 0.8);
-    background: rgba(255, 255, 255, 0.2);
-    padding: 5px 10px;
-    border-radius: 10px;
+    z-index: 5000;
+    /* Kesinlikle en üstte */
+    color: rgba(255, 255, 255, 0.9);
+    background: rgba(255, 255, 255, 0.25);
+    padding: 8px 12px;
+    border-radius: 12px;
     backdrop-filter: blur(5px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s;
+}
+
+.menu-btn:active {
+    transform: scale(0.95);
 }
 
 /* --- SIDE MENU --- */
@@ -56,8 +62,7 @@ body {
     height: 100%;
     background: rgba(255, 255, 255, 0.98);
     backdrop-filter: blur(10px);
-    z-index: 4000;
-    /* Menü butonundan da üstte */
+    z-index: 6000;
     transition: left 0.3s ease-in-out;
     padding: 20px;
     color: #333;
@@ -121,7 +126,7 @@ body {
     width: 100%;
     height: 100%;
     background: rgba(0, 0, 0, 0.5);
-    z-index: 3500;
+    z-index: 5500;
     display: none;
     opacity: 0;
     transition: opacity 0.3s;
@@ -137,6 +142,8 @@ body {
     display: none;
     flex: 1;
     animation: fadeIn 0.5s ease;
+    padding-top: 20px;
+    /* Üstten biraz boşluk */
 }
 
 .active-page {
@@ -159,11 +166,10 @@ body {
     }
 }
 
-/* --- HOME PAGE (COUNTER) --- */
-.home-header {
+/* --- HOME PAGE (SCREENSHOT MATCH) --- */
+.home-header-text {
     text-align: center;
     margin-top: 60px;
-    /* Menü butonu için boşluk */
     margin-bottom: 30px;
 }
 
@@ -171,8 +177,8 @@ h1 {
     font-family: 'Cormorant Garamond', serif;
     font-size: 2.2rem;
     font-weight: 400;
-    margin-bottom: 0.5rem;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-bottom: 0.8rem;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
     line-height: 1.2;
 }
 
@@ -180,33 +186,33 @@ h1 {
     font-family: 'Montserrat', sans-serif;
     font-style: italic;
     font-size: 1rem;
-    opacity: 0.9;
+    opacity: 0.95;
     font-weight: 300;
+    letter-spacing: 0.5px;
 }
 
-.hero-section {
-    text-align: center;
-    /* Kalbi ortalamak için */
-    margin: 0 auto;
-    width: 90%;
-    padding: 2rem;
-    background: rgba(255, 255, 255, 0.2);
+.glass-card {
+    background: rgba(255, 255, 255, 0.25);
     border-radius: 30px;
     backdrop-filter: blur(15px);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.05);
+    -webkit-backdrop-filter: blur(15px);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    padding: 2.5rem 1.5rem;
+    width: 90%;
+    max-width: 400px;
+    margin: 0 auto;
+    text-align: center;
     display: flex;
     flex-direction: column;
     align-items: center;
-    /* Flex ile de ortala */
 }
 
-.heart-beat {
+.heart-icon {
     font-size: 3.5rem;
-    margin-bottom: 1rem;
+    margin-bottom: 1.5rem;
     animation: heartbeat 1.5s infinite;
-    /* Kullanıcı isteği: Kalbi ortala */
-    align-self: center;
+    filter: drop-shadow(0 5px 10px rgba(0, 0, 0, 0.1));
 }
 
 @keyframes heartbeat {
@@ -215,7 +221,7 @@ h1 {
     }
 
     15% {
-        transform: scale(1.3);
+        transform: scale(1.2);
     }
 
     30% {
@@ -223,7 +229,7 @@ h1 {
     }
 
     45% {
-        transform: scale(1.15);
+        transform: scale(1.1);
     }
 
     60% {
@@ -231,69 +237,55 @@ h1 {
     }
 }
 
-.counter-label {
+.card-label {
     font-family: 'Cormorant Garamond', serif;
     font-size: 1.8rem;
-    margin-bottom: 1.5rem;
-    opacity: 1;
+    margin-bottom: 2rem;
     font-weight: 500;
+    letter-spacing: 1px;
 }
 
-.counter-container {
+.counter-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    /* Gün, Saat, Dakika yan yana */
     gap: 15px;
     width: 100%;
-    justify-content: center;
 }
 
-/* Saniye'yi alta almak için grid düzeni (Screenshot'a benzetme denemesi) */
-/* Ama screenshotta 4'ü de yan yana gibi duruyor veya 2x2. 
-   Screenshot'ta: 2551 Gün, 11 Saat, 18 Dakika (yan yana)
-   Altında: 24 Saniye (tek başına ortada) */
-
-.counter-container {
+.time-item {
     display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 20px;
+    flex-direction: column;
+    align-items: center;
 }
 
-.time-box {
-    text-align: center;
-    min-width: 70px;
+.time-item.full-width {
+    grid-column: 1 / -1;
+    /* Saniye tüm satırı kaplasın */
+    margin-top: 15px;
 }
 
-/* Saniye için özel stil (Screenshot'taki gibi altta ve büyük) */
-.time-box:last-child {
-    width: 100%;
-    margin-top: 10px;
-}
-
-.time-box span {
-    display: block;
+.time-item span {
     font-size: 2.2rem;
     font-weight: 300;
     font-family: 'Montserrat', sans-serif;
-    /* Screenshot'ta ince font var */
+    line-height: 1;
 }
 
-.time-box p {
+.time-item p {
     font-size: 0.7rem;
-    text-transform: uppercase;
-    letter-spacing: 2px;
-    opacity: 0.8;
     margin-top: 5px;
+    opacity: 0.8;
+    letter-spacing: 2px;
 }
 
-.footer-text {
+.footer-msg {
     text-align: center;
-    margin-top: 30px;
+    margin-top: 40px;
     font-family: 'Montserrat', sans-serif;
     font-size: 0.9rem;
-    opacity: 0.7;
-    letter-spacing: 1px;
+    opacity: 0.8;
+    letter-spacing: 2px;
+    font-weight: 300;
 }
 
 /* --- JOURNAL PAGE --- */
