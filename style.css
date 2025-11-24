@@ -10,8 +10,10 @@
 
 body {
     font-family: 'Montserrat', sans-serif;
-    background: linear-gradient(135deg, #ff9a9e 0%, #fad0c4 99%, #fad0c4 100%);
-    color: #fff;
+    /* Daha soft, göz yormayan pastel bir geçiş */
+    background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
+    color: #333;
+    /* Yazıları koyulaştırdık okunabilirlik için */
     min-height: 100vh;
     overflow-x: hidden;
     display: flex;
@@ -172,11 +174,12 @@ header {
     text-align: center;
     margin-top: 20px;
     padding: 2rem;
-    background: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.6);
+    /* Daha opak beyaz */
     border-radius: 30px;
     backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.05);
 }
 
 .heart-beat {
@@ -184,6 +187,8 @@ header {
     margin-bottom: 1rem;
     animation: heartbeat 1.5s infinite;
     display: inline-block;
+    color: #ff758c;
+    /* Kalp rengi */
 }
 
 @keyframes heartbeat {
@@ -213,7 +218,9 @@ h1 {
     font-size: 2.5rem;
     font-weight: 300;
     margin-bottom: 2rem;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    color: #444;
+    /* Başlık rengi */
+    text-shadow: none;
 }
 
 .counter-container {
@@ -224,11 +231,12 @@ h1 {
 }
 
 .time-box {
-    background: rgba(255, 255, 255, 0.25);
+    background: rgba(255, 255, 255, 0.8);
     padding: 1.5rem;
     border-radius: 20px;
     backdrop-filter: blur(5px);
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.03);
 }
 
 .time-box span {
@@ -236,14 +244,17 @@ h1 {
     font-size: 2.5rem;
     font-weight: 600;
     font-family: 'Cormorant Garamond', serif;
+    color: #ff758c;
+    /* Sayaç rakamları */
 }
 
 .time-box p {
     font-size: 0.9rem;
     text-transform: uppercase;
     letter-spacing: 2px;
-    opacity: 0.9;
+    opacity: 0.7;
     margin-top: 5px;
+    color: #666;
 }
 
 .sub-text {
@@ -251,6 +262,7 @@ h1 {
     font-style: italic;
     font-size: 1.2rem;
     opacity: 0.8;
+    color: #555;
 }
 
 /* --- JOURNAL PAGE --- */
@@ -259,10 +271,11 @@ h2 {
     font-size: 2rem;
     margin-bottom: 1.5rem;
     text-align: center;
+    color: #444;
 }
 
 .journal-input-card {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.7);
     padding: 1.5rem;
     border-radius: 20px;
     backdrop-filter: blur(10px);
@@ -270,6 +283,7 @@ h2 {
     display: flex;
     flex-direction: column;
     gap: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
 }
 
 .journal-input-card input,
@@ -277,8 +291,8 @@ h2 {
     width: 100%;
     padding: 12px;
     border-radius: 12px;
-    border: none;
-    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid #eee;
+    background: #fff;
     font-family: 'Montserrat', sans-serif;
     font-size: 1rem;
     color: #333;
@@ -291,11 +305,17 @@ h2 {
 
 .icon-btn {
     background: #fff;
-    border: none;
+    border: 1px solid #eee;
     border-radius: 12px;
     padding: 0 15px;
     cursor: pointer;
     font-size: 1.2rem;
+    color: #555;
+    transition: all 0.2s;
+}
+
+.icon-btn:hover {
+    background: #f9f9f9;
 }
 
 .primary-btn {
@@ -307,7 +327,12 @@ h2 {
     font-size: 1rem;
     font-weight: 600;
     cursor: pointer;
-    transition: transform 0.2s;
+    transition: transform 0.2s, background 0.2s;
+    box-shadow: 0 5px 15px rgba(255, 117, 140, 0.3);
+}
+
+.primary-btn:hover {
+    background: #ff5e78;
 }
 
 .primary-btn:active {
@@ -321,12 +346,13 @@ h2 {
 }
 
 .journal-card {
-    background: rgba(255, 255, 255, 0.9);
+    background: #fff;
     color: #333;
     padding: 1.5rem;
     border-radius: 20px;
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
     position: relative;
+    border: 1px solid #f0f0f0;
 }
 
 .journal-header {
@@ -371,22 +397,23 @@ h2 {
 /* --- ALBUM PAGE --- */
 .upload-card {
     text-align: center;
-    background: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.7);
     padding: 2rem;
     border-radius: 20px;
-    border: 2px dashed rgba(255, 255, 255, 0.5);
+    border: 2px dashed #ffb7b2;
     margin-bottom: 2rem;
 }
 
 .upload-btn {
     display: inline-block;
-    background: #fff;
-    color: #ff758c;
+    background: #ff758c;
+    /* Buton rengini belirginleştirdik */
+    color: #fff;
     padding: 12px 25px;
     border-radius: 30px;
     font-weight: 600;
     cursor: pointer;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 5px 15px rgba(255, 117, 140, 0.3);
     transition: transform 0.2s;
 }
 
@@ -398,6 +425,7 @@ h2 {
     margin-top: 10px;
     font-size: 0.9rem;
     opacity: 0.8;
+    color: #666;
 }
 
 .filter-bar {
@@ -410,15 +438,16 @@ h2 {
     flex: 1;
     padding: 10px;
     border-radius: 10px;
-    border: none;
-    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid #eee;
+    background: #fff;
+    color: #333;
 }
 
 .filter-bar button {
     padding: 10px 15px;
     border-radius: 10px;
     border: none;
-    background: rgba(255, 255, 255, 0.3);
+    background: #666;
     color: white;
     cursor: pointer;
 }

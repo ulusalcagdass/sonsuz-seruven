@@ -168,7 +168,14 @@ addNoteBtn.addEventListener('click', async () => {
         return;
     }
 
-    const memory = { date, location, note, timestamp: new Date().toISOString() };
+    // Tarih formatını düzelt (Timezone sorununu önlemek için)
+    // input type="date" bize "YYYY-MM-DD" verir. Bunu doğrudan kullanacağız.
+    const memory = {
+        date, // "2023-11-23" gibi string olarak sakla
+        location,
+        note,
+        timestamp: new Date().toISOString()
+    };
 
     if (isFirebaseActive) {
         try {
@@ -201,8 +208,12 @@ function renderMemories() {
     } else {
         let memories = JSON.parse(localStorage.getItem('memories') || '[]');
         const selectedDate = journalDate.value;
-        if (selectedDate) memories = memories.filter(m => m.date === selectedDate);
-        memories.sort((a, b) => new Date(b.date) - new Date(a.date));
+        if (selectedDate) {
+            // String karşılaştırması yap (Timezone'dan etkilenmez)
+            memories = memories.filter(m => m.date === selectedDate);
+        }
+        // Sıralama
+        memories.sort((a, b) => b.date.localeCompare(a.date));
 
         if (memories.length === 0) {
             journalList.innerHTML = '<div class="empty-state">Bu tarihte anı yok.</div>';
@@ -215,7 +226,11 @@ function renderMemories() {
 function createMemoryCard(data, id) {
     const card = document.createElement('div');
     card.className = 'journal-card fade-in';
-    const dateObj = new Date(data.date);
+
+    // Tarihi düzgün göstermek için string'i parse et
+    // "2023-11-23" -> 23 Kasım 2023
+    const parts = data.date.split('-');
+    const dateObj = new Date(parts[0], parts[1] - 1, parts[2]);
     const dateStr = dateObj.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
 
     card.innerHTML = `
