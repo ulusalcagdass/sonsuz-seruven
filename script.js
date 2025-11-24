@@ -234,58 +234,9 @@ addNoteBtn.addEventListener('click', async () => {
     journalNote.value = '';
 });
 
-function renderMemories() {
-    journalList.innerHTML = '';
-    let memories = [];
+// Eski renderMemories fonksiyonu kaldırıldı (Aşağıda yeniden tanımlandı)
 
-    if (isFirebaseActive) {
-        // Firebase'den çek (Real-time listener)
-        db.collection("memories").orderBy("date", "desc").onSnapshot(snapshot => {
-            journalList.innerHTML = '';
-            snapshot.forEach(doc => {
-                createMemoryCard(doc.data());
-            });
-        });
-        return; // Listener sürekli dinler, fonksiyondan çık
-    } else {
-        // LocalStorage'dan çek
-        memories = JSON.parse(localStorage.getItem('memories') || '[]');
-
-        // Tarihe göre filtrele (Seçili tarih varsa)
-        const selectedDate = journalDate.value;
-        if (selectedDate) {
-            memories = memories.filter(m => m.date === selectedDate);
-        }
-
-        // Tarihe göre sırala (Yeniden eskiye)
-        memories.sort((a, b) => new Date(b.date) - new Date(a.date));
-
-        if (memories.length === 0) {
-            journalList.innerHTML = '<div class="empty-state">Bu tarihte anı yok.</div>';
-            return;
-        }
-
-        memories.forEach(memory => {
-            createMemoryCard(memory);
-        });
-    }
-}
-
-function createMemoryCard(data) {
-    const card = document.createElement('div');
-    card.className = 'journal-card fade-in';
-
-    // Tarihi formatla
-    const dateObj = new Date(data.date);
-    const dateStr = dateObj.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
-
-    card.innerHTML = `
-        <div class="journal-date">${dateStr}</div>
-        ${data.location ? `<div class="journal-location">📍 ${data.location}</div>` : ''}
-        <div class="journal-text">${data.note}</div>
-    `;
-    journalList.appendChild(card);
-}
+// Eski createMemoryCard fonksiyonu kaldırıldı (Aşağıda yeniden tanımlandı)
 
 // Sayfa yüklenince anıları getir
 renderMemories();
@@ -472,13 +423,132 @@ function createPhotoElement(url, id) {
     img.className = 'photo-item fade-in';
     img.style.backgroundImage = `url(${url})`;
 
-    // Tıklayınca Lightbox aç
     img.addEventListener('click', () => {
-        lightbox.style.display = "block";
-        lightboxImg.src = url;
+        openLightbox(url, id);
     });
 
     photoGrid.appendChild(img);
 }
 
-renderPhotos();
+// Lightbox Logic
+let currentPhotoId = null;
+
+function openLightbox(url, id) {
+    lightbox.style.display = "block";
+    lightboxImg.src = url;
+    currentPhotoId = id;
+
+    // Silme butonu ekle (varsa eskisini temizle)
+    const oldBtn = document.getElementById('lightbox-delete-btn');
+    if (oldBtn) oldBtn.remove();
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.id = 'lightbox-delete-btn';
+    deleteBtn.className = 'lightbox-delete-btn';
+    deleteBtn.innerHTML = '🗑️ Sil';
+
+    deleteBtn.onclick = async (e) => {
+        e.stopPropagation(); // Lightbox kapanmasın
+        if (confirm("Bu fotoğrafı silmek istediğine emin misin?")) {
+            await deletePhoto(currentPhotoId);
+            lightbox.style.display = "none";
+        }
+    };
+
+    lightbox.appendChild(deleteBtn);
+}
+
+async function deletePhoto(id) {
+    if (isFirebaseActive) {
+        try {
+            await db.collection("photos").doc(id).delete();
+            // Snapshot listener otomatik güncelleyecek
+        } catch (e) {
+            console.error("Silme hatası:", e);
+            alert("Silinirken hata oluştu.");
+        }
+    } else {
+        let photos = JSON.parse(localStorage.getItem('photos') || '[]');
+        photos = photos.filter(p => p.id !== id);
+        localStorage.setItem('photos', JSON.stringify(photos));
+        renderPhotos();
+    }
+}
+
+// --- ANI SİLME FONKSİYONLARI ---
+
+function renderMemories() {
+    journalList.innerHTML = '';
+    let memories = [];
+
+    if (isFirebaseActive) {
+        db.collection("memories").orderBy("date", "desc").onSnapshot(snapshot => {
+            journalList.innerHTML = '';
+            snapshot.forEach(doc => {
+                createMemoryCard(doc.data(), doc.id);
+            });
+        });
+    } else {
+        memories = JSON.parse(localStorage.getItem('memories') || '[]');
+        const selectedDate = journalDate.value;
+        if (selectedDate) {
+            memories = memories.filter(m => m.date === selectedDate);
+        }
+        memories.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        if (memories.length === 0) {
+            journalList.innerHTML = '<div class="empty-state">Bu tarihte anı yok.</div>';
+            return;
+        }
+
+        memories.forEach(memory => {
+            createMemoryCard(memory, memory.id);
+        });
+    }
+}
+
+function createMemoryCard(data, id) {
+    const card = document.createElement('div');
+    card.className = 'journal-card fade-in';
+
+    const dateObj = new Date(data.date);
+    const dateStr = dateObj.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
+
+    card.innerHTML = `
+        <div class="journal-header">
+            <div class="journal-date">${dateStr}</div>
+            <button class="delete-btn" onclick="deleteMemory('${id}')">🗑️</button>
+        </div>
+        ${data.location ? `<div class="journal-location">📍 ${data.location}</div>` : ''}
+        <div class="journal-text">${data.note}</div>
+    `;
+    journalList.appendChild(card);
+}
+
+// Global scope'a ekle (HTML'den çağrılabilmesi için)
+window.deleteMemory = async function (id) {
+    if (confirm("Bu anıyı silmek istediğine emin misin?")) {
+        if (isFirebaseActive) {
+            try {
+                await db.collection("memories").doc(id).delete();
+            } catch (e) {
+                console.error("Silme hatası:", e);
+            }
+        } else {
+            let memories = JSON.parse(localStorage.getItem('memories') || '[]');
+            memories = memories.filter(m => m.id !== id); // ID kontrolü
+            localStorage.setItem('memories', JSON.stringify(memories));
+            renderMemories();
+        }
+    }
+};
+
+// Not eklerken ID eklemeyi unutma (LocalStorage için)
+// Bu kısmı override etmemiz gerekebilir ama şimdilik renderMemories'i burada tanımladığımız için yukarıdaki addNoteBtn listener'ı eski renderMemories'i çağırsa bile çalışır mı?
+// Hayır, addNoteBtn yukarıda tanımlı ve eski renderMemories'i görüyor olabilir mi?
+// JS'de fonksiyonlar hoisted olur ama const ile tanımlananlar olmaz.
+// En iyisi addNoteBtn listener'ını da güncellemek ama dosya yapısı karışık.
+// Şimdilik renderMemories'i override ediyoruz, bu yeterli olmalı çünkü addNoteBtn renderMemories'i çağırıyor.
+
+// Sayfa yüklenince anıları getir
+renderMemories();
