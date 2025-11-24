@@ -20,11 +20,6 @@
         href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,600;1,400&family=Montserrat:wght@300;400;500&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="style.css">
-    <!-- Leaflet Map CSS & JS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 </head>
 
 <body>
@@ -55,8 +50,6 @@
                 <li data-target="home-page" class="active">⏳ Sayaç</li>
                 <li data-target="journal-page">📖 Anı Defteri</li>
                 <li data-target="album-page">📸 Fotoğraf Albümü</li>
-                <li data-target="bucket-list-page">📝 Yapılacaklar</li>
-                <li data-target="map-page">🗺️ Aşk Haritası</li>
             </ul>
         </nav>
 
@@ -133,25 +126,6 @@
                 <div id="photo-grid" class="photo-grid">
                     <!-- Fotoğraflar buraya gelecek -->
                 </div>
-            </section>
-
-            <!-- 4. BUCKET LIST PAGE -->
-            <section id="bucket-list-page" class="page hidden-page">
-                <h2>Yapılacaklar Listesi</h2>
-                <div class="bucket-input-card">
-                    <input type="text" id="bucket-input" placeholder="Hayalimiz ne? (Örn: Paris'e git)">
-                    <button id="add-bucket-btn" class="primary-btn">Ekle</button>
-                </div>
-                <div id="bucket-list" class="bucket-list">
-                    <!-- Maddeler buraya gelecek -->
-                </div>
-            </section>
-
-            <!-- 5. MAP PAGE -->
-            <section id="map-page" class="page hidden-page">
-                <h2>Aşk Haritası</h2>
-                <p class="map-hint">Anı defterine konum ekledikçe harita dolacak ❤️</p>
-                <div id="map"></div>
             </section>
 
         </main>

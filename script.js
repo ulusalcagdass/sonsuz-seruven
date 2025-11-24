@@ -25,24 +25,20 @@ function updateCounter() {
     secondsEl.textContent = seconds.toString().padStart(2, '0');
 }
 
-// Sayacı başlat (Her saniyede bir güncelle - Salise kalktığı için 1000ms yeterli)
+// Sayacı başlat
 setInterval(updateCounter, 1000);
-
-// İlk yüklemede hemen çalıştır
 updateCounter();
 
 // Müzik Kontrolü
 const bgMusic = document.getElementById('bg-music');
 
-// 1. Hemen çalmayı dene (Tarayıcı izin verirse)
 window.addEventListener('load', () => {
     bgMusic.currentTime = 45; // Nakarat başlangıcı
     bgMusic.play().catch(error => {
-        console.log("Otomatik oynatma tarayıcı tarafından engellendi. Kullanıcı etkileşimi bekleniyor.", error);
+        console.log("Otomatik oynatma engellendi.", error);
     });
 });
 
-// 2. Eğer engellenirse, ekrana ilk dokunuşta çal (Yedek plan)
 document.body.addEventListener('click', () => {
     if (bgMusic.paused) {
         bgMusic.play().catch(e => console.log("Müzik başlatılamadı:", e));
@@ -54,9 +50,8 @@ document.body.addEventListener('touchstart', () => {
     }
 }, { once: true });
 
-// ... (Menü kodları aynı kalıyor) ...
 
-// --- FIREBASE AYARLARI (Ortak Veritabanı) ---
+// --- FIREBASE AYARLARI ---
 const firebaseConfig = {
     apiKey: "AIzaSyBu2e7VWVv5B7GWNHdHzJQgurY37pJgINg",
     authDomain: "sonsuzseruven.firebaseapp.com",
@@ -71,15 +66,14 @@ let db, storage;
 let isFirebaseActive = false;
 
 try {
-    // Firebase kütüphanesi yüklendi mi ve API Key girildi mi kontrol et
     if (typeof firebase !== 'undefined' && firebaseConfig.apiKey !== "API_KEY_BURAYA") {
         firebase.initializeApp(firebaseConfig);
         db = firebase.firestore();
         storage = firebase.storage();
         isFirebaseActive = true;
-        console.log("Firebase aktif! Veriler buluta kaydediliyor.");
+        console.log("Firebase aktif!");
     } else {
-        console.log("Firebase ayarlanmadı, LocalStorage (Telefon Hafızası) kullanılıyor.");
+        console.log("Firebase ayarlanmadı, LocalStorage kullanılıyor.");
     }
 } catch (e) {
     console.error("Firebase başlatma hatası:", e);
@@ -104,11 +98,9 @@ menuOverlay.addEventListener('click', toggleMenu);
 
 menuItems.forEach(item => {
     item.addEventListener('click', () => {
-        // Aktif menü öğesini güncelle
         menuItems.forEach(i => i.classList.remove('active'));
         item.classList.add('active');
 
-        // Sayfayı değiştir
         const targetId = item.getAttribute('data-target');
         pages.forEach(page => {
             if (page.id === targetId) {
@@ -119,12 +111,9 @@ menuItems.forEach(item => {
                 page.classList.remove('active-page');
             }
         });
-
-        // Menüyü kapat
         toggleMenu();
     });
 });
-
 
 
 // --- ANI DEFTERİ (JOURNAL) ---
@@ -135,25 +124,19 @@ const addNoteBtn = document.getElementById('add-note-btn');
 const journalList = document.getElementById('journal-list');
 const getLocationBtn = document.getElementById('get-location-btn');
 
-// Bugünün tarihini varsayılan yap
 journalDate.valueAsDate = new Date();
 
-// Konum Bulma
 getLocationBtn.addEventListener('click', () => {
     if (!navigator.geolocation) {
         alert("Tarayıcınız konum özelliğini desteklemiyor.");
         return;
     }
-
     getLocationBtn.textContent = "İzin bekleniyor...";
-
-    // Kullanıcıya bilgi ver (iOS PWA bazen sessizce reddeder)
-    alert("Konum izni isteği gönderilecek. Lütfen ekrana gelen uyarıda 'İzin Ver'i seçin.\n\nEğer uyarı gelmezse: Ayarlar > Gizlilik > Konum Servisleri'nden tarayıcınıza izin verin.");
+    alert("Konum izni isteği gönderilecek. Lütfen 'İzin Ver'i seçin.");
 
     navigator.geolocation.getCurrentPosition(async (position) => {
         const lat = position.coords.latitude;
         const lon = position.coords.longitude;
-
         getLocationBtn.textContent = "Adres bulunuyor...";
 
         try {
@@ -167,31 +150,12 @@ getLocationBtn.addEventListener('click', () => {
             journalLocation.value = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
             getLocationBtn.textContent = "📍 Konumu Bul";
         }
-
     }, (error) => {
-        console.error("Konum hatası:", error);
-        let errorMsg = "Konum alınamadı.";
-        switch (error.code) {
-            case error.PERMISSION_DENIED:
-                errorMsg = "Konum izni reddedildi. Lütfen ayarlardan izin verin.";
-                break;
-            case error.POSITION_UNAVAILABLE:
-                errorMsg = "Konum bilgisi mevcut değil.";
-                break;
-            case error.TIMEOUT:
-                errorMsg = "Konum isteği zaman aşımına uğradı.";
-                break;
-        }
-        alert(errorMsg);
+        alert("Konum alınamadı.");
         getLocationBtn.textContent = "📍 Konumu Bul";
-    }, {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0
-    });
+    }, { enableHighAccuracy: true });
 });
 
-// Tarih değişince filtrele
 journalDate.addEventListener('change', renderMemories);
 
 addNoteBtn.addEventListener('click', async () => {
@@ -204,283 +168,29 @@ addNoteBtn.addEventListener('click', async () => {
         return;
     }
 
-    const memory = {
-        date,
-        location,
-        note,
-        timestamp: new Date().toISOString()
-    };
+    const memory = { date, location, note, timestamp: new Date().toISOString() };
 
     if (isFirebaseActive) {
-        // Firebase'e kaydet
         try {
             await db.collection("memories").add(memory);
             alert("Anı başarıyla kaydedildi!");
         } catch (error) {
-            console.error("Hata:", error);
             alert("Kaydedilirken hata oluştu.");
         }
     } else {
-        // LocalStorage'a kaydet
         const memories = JSON.parse(localStorage.getItem('memories') || '[]');
+        memory.id = Date.now().toString();
         memories.push(memory);
         localStorage.setItem('memories', JSON.stringify(memories));
-        renderMemories(); // Listeyi güncelle
-        alert("Anı telefona kaydedildi! (Bulut için ayar gerekli)");
+        renderMemories();
+        alert("Anı telefona kaydedildi!");
     }
-
-    // Formu temizle
     journalLocation.value = '';
     journalNote.value = '';
 });
 
-// Eski renderMemories fonksiyonu kaldırıldı (Aşağıda yeniden tanımlandı)
-
-// Eski createMemoryCard fonksiyonu kaldırıldı (Aşağıda yeniden tanımlandı)
-
-// Sayfa yüklenince anıları getir
-renderMemories();
-
-
-// --- FOTOĞRAF ALBÜMÜ ---
-const photoUpload = document.getElementById('photo-upload');
-const photoGrid = document.getElementById('photo-grid');
-const photoFilterDate = document.getElementById('photo-filter-date');
-const clearFilterBtn = document.getElementById('clear-filter-btn');
-const lightbox = document.getElementById('lightbox');
-const lightboxImg = document.getElementById('lightbox-img');
-const closeLightbox = document.querySelector('.close-lightbox');
-
-// Filtreleme Eventleri
-photoFilterDate.addEventListener('change', renderPhotos);
-clearFilterBtn.addEventListener('click', () => {
-    photoFilterDate.value = '';
-    renderPhotos();
-});
-
-// Lightbox Kapatma
-closeLightbox.addEventListener('click', () => {
-    lightbox.style.display = "none";
-});
-lightbox.addEventListener('click', (e) => {
-    if (e.target === lightbox) {
-        lightbox.style.display = "none";
-    }
-});
-
-// Resim Sıkıştırma Fonksiyonu (Firestore için)
-function resizeImage(file) {
-    return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const img = new Image();
-            img.onload = () => {
-                const canvas = document.createElement('canvas');
-                let width = img.width;
-                let height = img.height;
-
-                // Max boyut 800px (Firestore 1MB limiti için güvenli)
-                const MAX_SIZE = 800;
-                if (width > height) {
-                    if (width > MAX_SIZE) {
-                        height *= MAX_SIZE / width;
-                        width = MAX_SIZE;
-                    }
-                } else {
-                    if (height > MAX_SIZE) {
-                        width *= MAX_SIZE / height;
-                        height = MAX_SIZE;
-                    }
-                }
-
-                canvas.width = width;
-                canvas.height = height;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, width, height);
-
-                // JPEG olarak sıkıştır (0.7 kalite)
-                resolve(canvas.toDataURL('image/jpeg', 0.7));
-            };
-            img.src = e.target.result;
-        };
-        reader.readAsDataURL(file);
-    });
-}
-
-// Upload Status Elementleri
-const uploadStatus = document.getElementById('upload-status');
-const uploadMsg = document.getElementById('upload-msg');
-
-function showUploadStatus(msg) {
-    uploadMsg.textContent = msg;
-    uploadStatus.classList.remove('hidden');
-}
-
-function hideUploadStatus() {
-    uploadStatus.classList.add('hidden');
-}
-
-photoUpload.addEventListener('change', async (e) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-
-    const uploadDate = new Date().toISOString().split('T')[0];
-    const totalFiles = files.length;
-    let processedFiles = 0;
-
-    showUploadStatus(`${totalFiles} fotoğraf hazırlanıyor...`);
-
-    for (let i = 0; i < totalFiles; i++) {
-        const file = files[i];
-
-        try {
-            showUploadStatus(`${i + 1}/${totalFiles} yükleniyor...`);
-
-            // Resmi sıkıştır (Base64 formatında al)
-            const base64Image = await resizeImage(file);
-
-            if (isFirebaseActive) {
-                // Firestore'a direkt kaydet
-                await db.collection("photos").add({
-                    url: base64Image,
-                    date: uploadDate,
-                    timestamp: new Date().toISOString()
-                });
-            } else {
-                // LocalStorage
-                const photos = JSON.parse(localStorage.getItem('photos') || '[]');
-                // ID oluştur (Silme işlemi için gerekli)
-                const id = Date.now() + Math.random().toString(36).substr(2, 9);
-                photos.push({
-                    id: id,
-                    url: base64Image,
-                    date: uploadDate
-                });
-                localStorage.setItem('photos', JSON.stringify(photos));
-            }
-
-            processedFiles++;
-        } catch (error) {
-            console.error("Fotoğraf işleme hatası:", error);
-        }
-    }
-
-    hideUploadStatus();
-    if (!isFirebaseActive) renderPhotos();
-    // Başarılı bildirimi (kısa süreli)
-    showUploadStatus("Tamamlandı! ✅");
-    setTimeout(hideUploadStatus, 2000);
-});
-
-function renderPhotos() {
-    photoGrid.innerHTML = '';
-    const filterDate = photoFilterDate.value;
-
-    if (isFirebaseActive) {
-        // Firebase'den çek
-        let query = db.collection("photos").orderBy("timestamp", "desc");
-
-        // Firestore'da client-side filtreleme yapmak daha kolay şimdilik
-        query.onSnapshot(snapshot => {
-            photoGrid.innerHTML = '';
-            let hasPhoto = false;
-
-            snapshot.forEach(doc => {
-                const data = doc.data();
-                // Tarih filtresi kontrolü
-                if (filterDate && data.date !== filterDate) return;
-
-                createPhotoElement(data.url, doc.id);
-                hasPhoto = true;
-            });
-
-            if (!hasPhoto) {
-                photoGrid.innerHTML = '<div class="empty-state">Fotoğraf bulunamadı.</div>';
-            }
-        });
-    } else {
-        // LocalStorage'dan çek
-        let photos = JSON.parse(localStorage.getItem('photos') || '[]');
-
-        if (filterDate) {
-            photos = photos.filter(p => p.date === filterDate);
-        }
-
-        if (photos.length === 0) {
-            photoGrid.innerHTML = '<div class="empty-state">Fotoğraf bulunamadı.</div>';
-            return;
-        }
-
-        photos.reverse();
-        photos.forEach(photo => {
-            createPhotoElement(photo.url, photo.id);
-        });
-    }
-}
-
-function createPhotoElement(url, id) {
-    const img = document.createElement('div');
-    img.className = 'photo-item fade-in';
-    img.style.backgroundImage = `url(${url})`;
-
-    img.addEventListener('click', () => {
-        openLightbox(url, id);
-    });
-
-    photoGrid.appendChild(img);
-}
-
-// Lightbox Logic
-let currentPhotoId = null;
-
-function openLightbox(url, id) {
-    lightbox.style.display = "block";
-    lightboxImg.src = url;
-    currentPhotoId = id;
-
-    // Silme butonu ekle (varsa eskisini temizle)
-    const oldBtn = document.getElementById('lightbox-delete-btn');
-    if (oldBtn) oldBtn.remove();
-
-    const deleteBtn = document.createElement('button');
-    deleteBtn.id = 'lightbox-delete-btn';
-    deleteBtn.className = 'lightbox-delete-btn';
-    deleteBtn.innerHTML = '🗑️ Sil';
-
-    deleteBtn.onclick = async (e) => {
-        e.stopPropagation(); // Lightbox kapanmasın
-        if (confirm("Bu fotoğrafı silmek istediğine emin misin?")) {
-            await deletePhoto(currentPhotoId);
-            lightbox.style.display = "none";
-        }
-    };
-
-    lightbox.appendChild(deleteBtn);
-}
-
-async function deletePhoto(id) {
-    if (isFirebaseActive) {
-        try {
-            await db.collection("photos").doc(id).delete();
-            // Snapshot listener otomatik güncelleyecek
-        } catch (e) {
-            console.error("Silme hatası:", e);
-            alert("Silinirken hata oluştu.");
-        }
-    } else {
-        let photos = JSON.parse(localStorage.getItem('photos') || '[]');
-        photos = photos.filter(p => p.id !== id);
-        localStorage.setItem('photos', JSON.stringify(photos));
-        renderPhotos();
-    }
-}
-
-// --- ANI SİLME FONKSİYONLARI ---
-
 function renderMemories() {
     journalList.innerHTML = '';
-    let memories = [];
-
     if (isFirebaseActive) {
         db.collection("memories").orderBy("date", "desc").onSnapshot(snapshot => {
             journalList.innerHTML = '';
@@ -489,28 +199,22 @@ function renderMemories() {
             });
         });
     } else {
-        memories = JSON.parse(localStorage.getItem('memories') || '[]');
+        let memories = JSON.parse(localStorage.getItem('memories') || '[]');
         const selectedDate = journalDate.value;
-        if (selectedDate) {
-            memories = memories.filter(m => m.date === selectedDate);
-        }
+        if (selectedDate) memories = memories.filter(m => m.date === selectedDate);
         memories.sort((a, b) => new Date(b.date) - new Date(a.date));
 
         if (memories.length === 0) {
             journalList.innerHTML = '<div class="empty-state">Bu tarihte anı yok.</div>';
             return;
         }
-
-        memories.forEach(memory => {
-            createMemoryCard(memory, memory.id);
-        });
+        memories.forEach(memory => createMemoryCard(memory, memory.id));
     }
 }
 
 function createMemoryCard(data, id) {
     const card = document.createElement('div');
     card.className = 'journal-card fade-in';
-
     const dateObj = new Date(data.date);
     const dateStr = dateObj.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
 
@@ -525,30 +229,174 @@ function createMemoryCard(data, id) {
     journalList.appendChild(card);
 }
 
-// Global scope'a ekle (HTML'den çağrılabilmesi için)
 window.deleteMemory = async function (id) {
     if (confirm("Bu anıyı silmek istediğine emin misin?")) {
         if (isFirebaseActive) {
-            try {
-                await db.collection("memories").doc(id).delete();
-            } catch (e) {
-                console.error("Silme hatası:", e);
-            }
+            await db.collection("memories").doc(id).delete();
         } else {
             let memories = JSON.parse(localStorage.getItem('memories') || '[]');
-            memories = memories.filter(m => m.id !== id); // ID kontrolü
+            memories = memories.filter(m => m.id !== id);
             localStorage.setItem('memories', JSON.stringify(memories));
             renderMemories();
         }
     }
 };
 
-// Not eklerken ID eklemeyi unutma (LocalStorage için)
-// Bu kısmı override etmemiz gerekebilir ama şimdilik renderMemories'i burada tanımladığımız için yukarıdaki addNoteBtn listener'ı eski renderMemories'i çağırsa bile çalışır mı?
-// Hayır, addNoteBtn yukarıda tanımlı ve eski renderMemories'i görüyor olabilir mi?
-// JS'de fonksiyonlar hoisted olur ama const ile tanımlananlar olmaz.
-// En iyisi addNoteBtn listener'ını da güncellemek ama dosya yapısı karışık.
-// Şimdilik renderMemories'i override ediyoruz, bu yeterli olmalı çünkü addNoteBtn renderMemories'i çağırıyor.
 
-// Sayfa yüklenince anıları getir
+// --- FOTOĞRAF ALBÜMÜ ---
+const photoUpload = document.getElementById('photo-upload');
+const photoGrid = document.getElementById('photo-grid');
+const photoFilterDate = document.getElementById('photo-filter-date');
+const clearFilterBtn = document.getElementById('clear-filter-btn');
+const lightbox = document.getElementById('lightbox');
+const lightboxImg = document.getElementById('lightbox-img');
+const closeLightbox = document.querySelector('.close-lightbox');
+const uploadStatus = document.getElementById('upload-status');
+const uploadMsg = document.getElementById('upload-msg');
+
+photoFilterDate.addEventListener('change', renderPhotos);
+clearFilterBtn.addEventListener('click', () => {
+    photoFilterDate.value = '';
+    renderPhotos();
+});
+
+closeLightbox.addEventListener('click', () => { lightbox.style.display = "none"; });
+lightbox.addEventListener('click', (e) => { if (e.target === lightbox) lightbox.style.display = "none"; });
+
+function resizeImage(file) {
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let width = img.width;
+                let height = img.height;
+                const MAX_SIZE = 800;
+                if (width > height) {
+                    if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; }
+                } else {
+                    if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; }
+                }
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                resolve(canvas.toDataURL('image/jpeg', 0.7));
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+function showUploadStatus(msg) {
+    uploadMsg.textContent = msg;
+    uploadStatus.classList.remove('hidden');
+}
+function hideUploadStatus() {
+    uploadStatus.classList.add('hidden');
+}
+
+photoUpload.addEventListener('change', async (e) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    const uploadDate = new Date().toISOString().split('T')[0];
+    const totalFiles = files.length;
+
+    showUploadStatus(`${totalFiles} fotoğraf hazırlanıyor...`);
+
+    for (let i = 0; i < totalFiles; i++) {
+        try {
+            showUploadStatus(`${i + 1}/${totalFiles} yükleniyor...`);
+            const base64Image = await resizeImage(files[i]);
+
+            if (isFirebaseActive) {
+                await db.collection("photos").add({ url: base64Image, date: uploadDate, timestamp: new Date().toISOString() });
+            } else {
+                const photos = JSON.parse(localStorage.getItem('photos') || '[]');
+                photos.push({ id: Date.now() + Math.random().toString(36), url: base64Image, date: uploadDate });
+                localStorage.setItem('photos', JSON.stringify(photos));
+            }
+        } catch (error) {
+            console.error("Hata:", error);
+        }
+    }
+    hideUploadStatus();
+    if (!isFirebaseActive) renderPhotos();
+    showUploadStatus("Tamamlandı! ✅");
+    setTimeout(hideUploadStatus, 2000);
+});
+
+function renderPhotos() {
+    photoGrid.innerHTML = '';
+    const filterDate = photoFilterDate.value;
+
+    if (isFirebaseActive) {
+        db.collection("photos").orderBy("timestamp", "desc").onSnapshot(snapshot => {
+            photoGrid.innerHTML = '';
+            let hasPhoto = false;
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                if (filterDate && data.date !== filterDate) return;
+                createPhotoElement(data.url, doc.id);
+                hasPhoto = true;
+            });
+            if (!hasPhoto) photoGrid.innerHTML = '<div class="empty-state">Fotoğraf bulunamadı.</div>';
+        });
+    } else {
+        let photos = JSON.parse(localStorage.getItem('photos') || '[]');
+        if (filterDate) photos = photos.filter(p => p.date === filterDate);
+        if (photos.length === 0) {
+            photoGrid.innerHTML = '<div class="empty-state">Fotoğraf bulunamadı.</div>';
+            return;
+        }
+        photos.reverse();
+        photos.forEach(photo => createPhotoElement(photo.url, photo.id));
+    }
+}
+
+function createPhotoElement(url, id) {
+    const img = document.createElement('div');
+    img.className = 'photo-item fade-in';
+    img.style.backgroundImage = `url(${url})`;
+    img.addEventListener('click', () => { openLightbox(url, id); });
+    photoGrid.appendChild(img);
+}
+
+let currentPhotoId = null;
+function openLightbox(url, id) {
+    lightbox.style.display = "block";
+    lightboxImg.src = url;
+    currentPhotoId = id;
+
+    const oldBtn = document.getElementById('lightbox-delete-btn');
+    if (oldBtn) oldBtn.remove();
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.id = 'lightbox-delete-btn';
+    deleteBtn.className = 'lightbox-delete-btn';
+    deleteBtn.innerHTML = '🗑️ Sil';
+    deleteBtn.onclick = async (e) => {
+        e.stopPropagation();
+        if (confirm("Bu fotoğrafı silmek istediğine emin misin?")) {
+            await deletePhoto(currentPhotoId);
+            lightbox.style.display = "none";
+        }
+    };
+    lightbox.appendChild(deleteBtn);
+}
+
+async function deletePhoto(id) {
+    if (isFirebaseActive) {
+        await db.collection("photos").doc(id).delete();
+    } else {
+        let photos = JSON.parse(localStorage.getItem('photos') || '[]');
+        photos = photos.filter(p => p.id !== id);
+        localStorage.setItem('photos', JSON.stringify(photos));
+        renderPhotos();
+    }
+}
+
 renderMemories();
+renderPhotos();
