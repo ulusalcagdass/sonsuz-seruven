@@ -385,15 +385,23 @@ photoUpload.addEventListener('change', async (e) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    // DÜZELTME: UTC yerine Yerel Tarih Stringi kullan (Kesin Çözüm)
-    const uploadDate = getLocalDateString();
+    // DÜZELTME: Eğer filtrede bir tarih seçiliyse O TARİHE kaydet, yoksa bugüne kaydet.
+    // Böylece geçmişe dönük fotoğraf yüklenebilir.
+    let uploadDate = photoFilterDate.value;
+    if (!uploadDate) {
+        uploadDate = getLocalDateString();
+    }
+
     const totalFiles = files.length;
 
-    showUploadStatus(`${totalFiles} fotoğraf hazırlanıyor...`);
+    // Kullanıcıya hangi tarihe yüklendiğini gösterelim
+    const dateParts = uploadDate.split('-');
+    const formattedDate = `${dateParts[2]}.${dateParts[1]}.${dateParts[0]}`;
+    showUploadStatus(`${formattedDate} tarihine ${totalFiles} fotoğraf yükleniyor...`);
 
     for (let i = 0; i < totalFiles; i++) {
         try {
-            showUploadStatus(`${i + 1}/${totalFiles} yükleniyor...`);
+            showUploadStatus(`${i + 1}/${totalFiles} yükleniyor... (${formattedDate})`);
             const base64Image = await resizeImage(files[i]);
 
             if (isFirebaseActive) {
