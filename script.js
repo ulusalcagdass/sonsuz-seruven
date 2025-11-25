@@ -624,3 +624,66 @@ if (bucketPage) {
     observer.observe(bucketPage, { attributes: true, attributeFilter: ['class'], attributeOldValue: true });
     if (bucketPage.classList.contains('active-page')) renderBucketList();
 }
+
+// --- SAAT BAŞI AŞK BİLDİRİMİ (12:00 - 00:00) ---
+const notificationSound = document.getElementById('notification-sound');
+const testNotificationBtn = document.getElementById('test-notification-btn');
+
+if (testNotificationBtn) {
+    testNotificationBtn.addEventListener('click', () => {
+        requestNotificationPermission();
+        sendLoveNotification("Seni Çok Seviyorum! ❤️", "İyi ki varsın sevgilim...");
+    });
+}
+
+function requestNotificationPermission() {
+    if (!("Notification" in window)) {
+        alert("Tarayıcın bildirimleri desteklemiyor.");
+        return;
+    }
+
+    if (Notification.permission !== "granted") {
+        Notification.requestPermission();
+    }
+}
+
+function sendLoveNotification(title, body) {
+    // Ses çal
+    if (notificationSound) {
+        notificationSound.currentTime = 0;
+        notificationSound.play().catch(e => console.log("Ses çalınamadı (etkileşim gerekli olabilir):", e));
+    }
+
+    // Bildirim gönder
+    if (Notification.permission === "granted") {
+        // Service Worker varsa onu kullan (PWA için daha iyi)
+        if (navigator.serviceWorker && navigator.serviceWorker.ready) {
+            navigator.serviceWorker.ready.then(registration => {
+                registration.showNotification(title, {
+                    body: body,
+                    icon: 'icon.png',
+                    vibrate: [200, 100, 200]
+                });
+            });
+        } else {
+            // Standart bildirim
+            new Notification(title, {
+                body: body,
+                icon: 'icon.png'
+            });
+        }
+    }
+}
+
+// Her dakika kontrol et
+setInterval(() => {
+    const now = new Date();
+    const hours = now.getHours();
+    const minutes = now.getMinutes();
+
+    // Saat 12:00 ile 00:00 arasında (00:00 dahil değil, 23:59 son)
+    // Ve tam saat başıysa (dakika 0)
+    if (hours >= 12 && hours <= 23 && minutes === 0) {
+        sendLoveNotification("Seni Çok Seviyorum! ❤️", "Saat başı hatırlatması: İyi ki hayatımdasın.");
+    }
+}, 60000); // 60 saniyede bir kontrol et
