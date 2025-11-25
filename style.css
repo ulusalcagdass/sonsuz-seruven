@@ -237,18 +237,6 @@ h1 {
     letter-spacing: 2px;
 }
 
-.footer-msg {
-    text-align: center;
-    margin-top: 40px;
-    font-family: 'Montserrat', sans-serif;
-    font-size: 0.9rem;
-    opacity: 0.8;
-    letter-spacing: 2px;
-    font-weight: 300;
-    /* Home Indicator için alt boşluk */
-    padding-bottom: calc(env(safe-area-inset-bottom) + 20px);
-}
-
 /* --- JOURNAL PAGE --- */
 h2 {
     font-family: 'Cormorant Garamond', serif;
