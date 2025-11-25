@@ -46,6 +46,8 @@
                 <li data-target="journal-page">📖 Anı Defteri</li>
                 <li data-target="album-page">📸 Fotoğraf Albümü</li>
                 <li data-target="bucket-list-page">✨ Yapılacaklar</li>
+                <li id="test-notification-btn" style="color: #ff9a9e; font-size: 0.9rem; margin-top: 20px;">🔔 Bildirimi
+                    Test Et</li>
             </ul>
         </nav>
 
@@ -155,6 +157,11 @@
         <span class="close-lightbox">&times;</span>
         <img class="lightbox-content" id="lightbox-img">
     </div>
+
+    <!-- Notification Sound -->
+    <audio id="notification-sound" preload="auto">
+        <source src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" type="audio/mpeg">
+    </audio>
 
     <!-- Confetti Effect -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
