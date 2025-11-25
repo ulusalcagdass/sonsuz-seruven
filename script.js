@@ -385,7 +385,7 @@ photoUpload.addEventListener('change', async (e) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    // DÜZELTME: UTC yerine Yerel Tarih Stringi kullan
+    // DÜZELTME: UTC yerine Yerel Tarih Stringi kullan (Kesin Çözüm)
     const uploadDate = getLocalDateString();
     const totalFiles = files.length;
 
