@@ -628,51 +628,83 @@ if (bucketPage) {
 // --- SAAT BAŞI AŞK BİLDİRİMİ (12:00 - 00:00) ---
 const notificationSound = document.getElementById('notification-sound');
 const testNotificationBtn = document.getElementById('test-notification-btn');
+const customNotification = document.getElementById('custom-notification');
+const notifTitle = document.getElementById('notif-title');
+const notifBody = document.getElementById('notif-body');
 
 if (testNotificationBtn) {
     testNotificationBtn.addEventListener('click', () => {
+        // İzin iste (ama zorlama)
         requestNotificationPermission();
+        // Bildirimi gönder
         sendLoveNotification("Seni Çok Seviyorum! ❤️", "İyi ki varsın sevgilim...");
     });
 }
 
 function requestNotificationPermission() {
-    if (!("Notification" in window)) {
-        alert("Tarayıcın bildirimleri desteklemiyor.");
-        return;
-    }
-
-    if (Notification.permission !== "granted") {
+    if ("Notification" in window && Notification.permission !== "granted") {
         Notification.requestPermission();
     }
 }
 
+function showInAppNotification(title, body) {
+    if (!customNotification) return;
+
+    notifTitle.textContent = title;
+    notifBody.textContent = body;
+
+    customNotification.classList.remove('hidden');
+
+    // 5 saniye sonra gizle
+    setTimeout(() => {
+        customNotification.classList.add('hidden');
+    }, 5000);
+}
+
 function sendLoveNotification(title, body) {
-    // Ses çal
+    // 1. SES ÇAL (Harp Sesi) 🎵
     if (notificationSound) {
         notificationSound.currentTime = 0;
-        notificationSound.play().catch(e => console.log("Ses çalınamadı (etkileşim gerekli olabilir):", e));
+        notificationSound.play().catch(e => console.log("Ses çalınamadı (etkileşim gerekli):", e));
     }
 
-    // Bildirim gönder
-    if (Notification.permission === "granted") {
-        // Service Worker varsa onu kullan (PWA için daha iyi)
-        if (navigator.serviceWorker && navigator.serviceWorker.ready) {
-            navigator.serviceWorker.ready.then(registration => {
-                registration.showNotification(title, {
-                    body: body,
-                    icon: 'icon.png',
-                    vibrate: [200, 100, 200]
+    // 2. UYGULAMA İÇİ BİLDİRİM GÖSTER (Her zaman çalışır) 📱
+    showInAppNotification(title, body);
+
+    // 3. SİSTEM BİLDİRİMİ DENE (Destekleniyorsa) 🔔
+    if ("Notification" in window && Notification.permission === "granted") {
+        try {
+            if (navigator.serviceWorker && navigator.serviceWorker.ready) {
+                navigator.serviceWorker.ready.then(registration => {
+                    registration.showNotification(title, {
+                        body: body,
+                        icon: 'icon.png',
+                        vibrate: [200, 100, 200]
+                    });
                 });
-            });
-        } else {
-            // Standart bildirim
-            new Notification(title, {
-                body: body,
-                icon: 'icon.png'
-            });
+            } else {
+                new Notification(title, {
+                    body: body,
+                    icon: 'icon.png'
+                });
+            }
+        } catch (e) {
+            console.log("Sistem bildirimi hatası:", e);
         }
     }
+}
+
+// Service Worker Kaydı (PWA ve Bildirimler için)
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+            .then(registration => {
+                console.log('Service Worker kaydedildi:', registration.scope);
+            })
+            .catch(error => {
+                console.log('Service Worker hatası:', error);
+            });
+    });
 }
 
 // Her dakika kontrol et
