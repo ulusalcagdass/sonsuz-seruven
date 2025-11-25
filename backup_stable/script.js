@@ -28,15 +28,14 @@ updateCounter();
 // Müzik Kontrolü (Görünmez & Otomatik)
 const bgMusic = document.getElementById('bg-music');
 
-// Müzik işlemlerini sayfa yüklenmesini beklemeden başlat
-document.addEventListener('DOMContentLoaded', () => {
+// Sayfa yüklendiğinde otomatik çalmayı dene
+// Sayfa yüklendiğinde otomatik çalmayı dene
+window.addEventListener('load', () => {
     bgMusic.volume = 0.5;
 
     // Şarkının "Büklüm büklüm boynunda" kısmından başlaması için saniye ayarı
+    // Lütfen buraya o kısmın kaçıncı saniyede başladığını yazın (Örn: 15.5)
     bgMusic.currentTime = 42;
-
-    // Tarayıcıya dosyayı hemen yüklemeye başlamasını söyle
-    bgMusic.load();
 
     // Müzik çalma girişimi
     const attemptPlay = () => {
@@ -44,6 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (playPromise !== undefined) {
             playPromise.then(() => {
                 console.log("Müzik çalıyor. 🎵");
+                // Başarılıysa dinleyicileri kaldır
                 removeUnlockListeners();
             }).catch(error => {
                 console.log("Otomatik çalma engellendi. Etkileşim bekleniyor.");
@@ -51,11 +51,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    // İlk yüklemede dene
+    attemptPlay();
+
     // Kullanıcı etkileşimi ile kilidi aç
     const unlockAudio = () => {
-        // Tekrar denemeden önce süreyi garantiye al
-        if (bgMusic.currentTime < 42) bgMusic.currentTime = 42;
-
         bgMusic.play().then(() => {
             console.log("Etkileşim ile müzik başladı.");
             removeUnlockListeners();
@@ -69,14 +69,11 @@ document.addEventListener('DOMContentLoaded', () => {
         window.removeEventListener('keydown', unlockAudio, true);
     };
 
-    // Dinleyicileri HEMEN ekle (Load olayını bekleme)
+    // Daha agresif dinleyiciler (Capture phase)
     window.addEventListener('click', unlockAudio, true);
     window.addEventListener('touchstart', unlockAudio, true);
     window.addEventListener('scroll', unlockAudio, true);
     window.addEventListener('keydown', unlockAudio, true);
-
-    // İlk denemeyi yap
-    attemptPlay();
 });
 
 

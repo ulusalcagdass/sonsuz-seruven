@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Beyza Ve Çağdaş'ın Sonsuz Serüveni</title>
+
+    <!-- PWA Meta Etiketleri -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#ff9a9e">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,600;1,400&family=Montserrat:wght@300;400;500&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <!-- Arka Plan Müzik -->
+    <audio id="bg-music" loop preload="auto">
+        <source src="ferdi.mp3" type="audio/mpeg">
+    </audio>
+
+    <div class="app-container">
+
+        <!-- Floating Menu Button -->
+        <div class="menu-btn" id="menu-btn">☰</div>
+
+        <!-- Side Menu -->
+        <div class="menu-overlay" id="menu-overlay"></div>
+        <nav class="side-menu" id="side-menu">
+            <div class="menu-header">
+                <span>Menü</span>
+                <button id="close-menu">✕</button>
+            </div>
+            <ul>
+                <li data-target="home-page" class="active">⏳ Sayaç</li>
+                <li data-target="journal-page">📖 Anı Defteri</li>
+                <li data-target="album-page">📸 Fotoğraf Albümü</li>
+            </ul>
+        </nav>
+
+        <!-- Pages Container -->
+        <main id="main-content">
+
+            <!-- 1. HOME PAGE (Sayaç) -->
+            <section id="home-page" class="page active-page">
+
+                <!-- Header Text (Outside Card) -->
+                <div class="home-header-text">
+                    <h1>Beyza Ve Çağdaş'ın<br>Sonsuz Serüveni</h1>
+                    <p class="sub-text">Her geçen gün daha da güzelleşiyor...</p>
+                </div>
+
+                <!-- Glass Card -->
+                <div class="glass-card">
+                    <div class="heart-icon">❤️</div>
+                    <div class="card-label">Birlikte Geçen Süre</div>
+
+                    <div class="counter-grid">
+                        <div class="time-item">
+                            <span id="days">00</span>
+                            <p>GÜN</p>
+                        </div>
+                        <div class="time-item">
+                            <span id="hours">00</span>
+                            <p>SAAT</p>
+                        </div>
+                        <div class="time-item">
+                            <span id="minutes">00</span>
+                            <p>DAKİKA</p>
+                        </div>
+                        <div class="time-item full-width">
+                            <span id="seconds">00</span>
+                            <p>SANİYE</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer Text -->
+                <p class="footer-msg">Seni Çok Seviyorum</p>
+
+            </section>
+
+            <!-- 2. JOURNAL PAGE -->
+            <section id="journal-page" class="page hidden-page">
+                <h2>Anı Defteri</h2>
+                <div class="journal-input-card">
+                    <input type="date" id="journal-date">
+                    <div class="location-wrapper">
+                        <input type="text" id="journal-location" placeholder="Konum">
+                        <button id="get-location-btn" class="icon-btn">📍 Konumu Bul</button>
+                    </div>
+                    <textarea id="journal-note" placeholder="Örn: Çay içtik, kahvaltı ettik..."></textarea>
+                    <button id="add-note-btn" class="primary-btn">Anıyı Kaydet</button>
+                </div>
+                <div id="journal-list" class="journal-list">
+                    <!-- Anılar buraya gelecek -->
+                </div>
+            </section>
+
+            <!-- 3. ALBUM PAGE -->
+            <section id="album-page" class="page hidden-page">
+                <h2>Fotoğraf Albümü</h2>
+
+                <div class="upload-card">
+                    <label for="photo-upload" class="upload-btn">
+                        📸 Fotoğraf Ekle
+                        <input type="file" id="photo-upload" accept="image/*" multiple hidden>
+                    </label>
+                </div>
+
+                <!-- Upload Status Toast -->
+                <div id="upload-status" class="upload-status hidden">
+                    <div class="spinner"></div>
+                    <span id="upload-msg">Yükleniyor...</span>
+                </div>
+
+                <div class="filter-bar">
+                    <input type="date" id="photo-filter-date">
+                    <button id="clear-filter-btn">Tümü</button>
+                </div>
+
+                <div id="photo-grid" class="photo-grid">
+                    <!-- Fotoğraflar buraya gelecek -->
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Lightbox -->
+    <div id="lightbox" class="lightbox">
+        <span class="close-lightbox">&times;</span>
+        <img class="lightbox-content" id="lightbox-img">
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
