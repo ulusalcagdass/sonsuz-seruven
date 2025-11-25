@@ -29,27 +29,51 @@ updateCounter();
 const bgMusic = document.getElementById('bg-music');
 
 // Sayfa yüklendiğinde otomatik çalmayı dene
+// Sayfa yüklendiğinde otomatik çalmayı dene
 window.addEventListener('load', () => {
     bgMusic.volume = 0.5;
-    const playPromise = bgMusic.play();
 
-    if (playPromise !== undefined) {
-        playPromise.then(() => {
-            console.log("Otomatik oynatma başarılı.");
-        }).catch(error => {
-            console.log("Otomatik oynatma engellendi. Kullanıcı etkileşimi bekleniyor.");
-            // Otomatik çalma başarısız olursa, kullanıcının herhangi bir yere dokunmasını bekle
-            const unlockAudio = () => {
-                bgMusic.play();
-                // Olay dinleyicilerini temizle ki tekrar tekrar tetiklenmesin
-                document.removeEventListener('click', unlockAudio);
-                document.removeEventListener('touchstart', unlockAudio);
-            };
+    // Şarkının "Büklüm büklüm boynunda" kısmından başlaması için saniye ayarı
+    // Lütfen buraya o kısmın kaçıncı saniyede başladığını yazın (Örn: 15.5)
+    bgMusic.currentTime = 42;
 
-            document.addEventListener('click', unlockAudio);
-            document.addEventListener('touchstart', unlockAudio);
-        });
-    }
+    // Müzik çalma girişimi
+    const attemptPlay = () => {
+        const playPromise = bgMusic.play();
+        if (playPromise !== undefined) {
+            playPromise.then(() => {
+                console.log("Müzik çalıyor. 🎵");
+                // Başarılıysa dinleyicileri kaldır
+                removeUnlockListeners();
+            }).catch(error => {
+                console.log("Otomatik çalma engellendi. Etkileşim bekleniyor.");
+            });
+        }
+    };
+
+    // İlk yüklemede dene
+    attemptPlay();
+
+    // Kullanıcı etkileşimi ile kilidi aç
+    const unlockAudio = () => {
+        bgMusic.play().then(() => {
+            console.log("Etkileşim ile müzik başladı.");
+            removeUnlockListeners();
+        }).catch(e => console.log("Hala çalınamadı:", e));
+    };
+
+    const removeUnlockListeners = () => {
+        window.removeEventListener('click', unlockAudio, true);
+        window.removeEventListener('touchstart', unlockAudio, true);
+        window.removeEventListener('scroll', unlockAudio, true);
+        window.removeEventListener('keydown', unlockAudio, true);
+    };
+
+    // Daha agresif dinleyiciler (Capture phase)
+    window.addEventListener('click', unlockAudio, true);
+    window.addEventListener('touchstart', unlockAudio, true);
+    window.addEventListener('scroll', unlockAudio, true);
+    window.addEventListener('keydown', unlockAudio, true);
 });
 
 
