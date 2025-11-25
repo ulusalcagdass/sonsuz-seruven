@@ -509,3 +509,118 @@ async function deletePhoto(id) {
 
 renderMemories();
 renderPhotos();
+
+// --- YAPILACAKLAR LİSTESİ (BUCKET LIST) ---
+const bucketInput = document.getElementById('bucket-input');
+const addBucketBtn = document.getElementById('add-bucket-btn');
+const bucketList = document.getElementById('bucket-list');
+let unsubscribeBucket = null;
+
+// Event Listener'ı güvenli bir şekilde ekle
+if (addBucketBtn) {
+    addBucketBtn.addEventListener('click', addBucketItem);
+}
+
+async function addBucketItem() {
+    const text = bucketInput.value.trim();
+    if (!text) return;
+
+    if (isFirebaseActive) {
+        await db.collection("bucket_list").add({
+            text: text,
+            completed: false,
+            timestamp: new Date().toISOString()
+        });
+    } else {
+        const items = JSON.parse(localStorage.getItem('bucket_list') || '[]');
+        items.push({ id: Date.now().toString(), text: text, completed: false });
+        localStorage.setItem('bucket_list', JSON.stringify(items));
+        renderBucketList();
+    }
+    bucketInput.value = '';
+}
+
+function renderBucketList() {
+    if (!bucketList) return;
+    bucketList.innerHTML = '';
+
+    if (isFirebaseActive) {
+        if (unsubscribeBucket) unsubscribeBucket();
+
+        unsubscribeBucket = db.collection("bucket_list")
+            .orderBy("timestamp", "desc")
+            .onSnapshot(snapshot => {
+                bucketList.innerHTML = '';
+                snapshot.forEach(doc => {
+                    createBucketElement(doc.id, doc.data());
+                });
+            });
+    } else {
+        const items = JSON.parse(localStorage.getItem('bucket_list') || '[]');
+        items.forEach(item => createBucketElement(item.id, item));
+    }
+}
+
+function createBucketElement(id, data) {
+    const item = document.createElement('div');
+    item.className = `bucket-item ${data.completed ? 'completed' : ''}`;
+    item.innerHTML = `
+        <input type="checkbox" class="bucket-checkbox" ${data.completed ? 'checked' : ''} onchange="toggleBucketItem('${id}', this.checked)">
+        <span class="bucket-text">${data.text}</span>
+        <button class="delete-btn" onclick="deleteBucketItem('${id}')">🗑️</button>
+    `;
+    bucketList.appendChild(item);
+}
+
+window.toggleBucketItem = async function (id, isChecked) {
+    if (isChecked) {
+        // KONFETİ PATLAT! 🎉
+        if (typeof confetti === 'function') {
+            confetti({
+                particleCount: 100,
+                spread: 70,
+                origin: { y: 0.6 }
+            });
+        }
+    }
+
+    if (isFirebaseActive) {
+        await db.collection("bucket_list").doc(id).update({ completed: isChecked });
+    } else {
+        const items = JSON.parse(localStorage.getItem('bucket_list') || '[]');
+        const item = items.find(i => i.id === id);
+        if (item) item.completed = isChecked;
+        localStorage.setItem('bucket_list', JSON.stringify(items));
+        renderBucketList();
+    }
+};
+
+window.deleteBucketItem = async function (id) {
+    if (confirm("Bu maddeyi silmek istiyor musun?")) {
+        if (isFirebaseActive) {
+            await db.collection("bucket_list").doc(id).delete();
+        } else {
+            let items = JSON.parse(localStorage.getItem('bucket_list') || '[]');
+            items = items.filter(i => i.id !== id);
+            localStorage.setItem('bucket_list', JSON.stringify(items));
+            renderBucketList();
+        }
+    }
+};
+
+// Sayfa geçişlerinde listeyi yükle
+const observer = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+        if (mutation.target.id === 'bucket-list-page' &&
+            mutation.target.classList.contains('active-page') &&
+            !mutation.oldValue.includes('active-page')) {
+            renderBucketList();
+        }
+    });
+});
+
+const bucketPage = document.getElementById('bucket-list-page');
+if (bucketPage) {
+    observer.observe(bucketPage, { attributes: true, attributeFilter: ['class'], attributeOldValue: true });
+    if (bucketPage.classList.contains('active-page')) renderBucketList();
+}

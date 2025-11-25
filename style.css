@@ -582,3 +582,113 @@ h2 {
         transform: rotate(360deg);
     }
 }
+
+/* --- BUCKET LIST PAGE --- */
+.bucket-input-card {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 2.5rem 1.5rem;
+    border-radius: 20px;
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    margin: 0 auto 2rem auto;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    width: 90%;
+    max-width: 400px;
+    text-align: center;
+}
+
+#bucket-input {
+    padding: 15px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    background: rgba(255, 255, 255, 0.9);
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1rem;
+    outline: none;
+    width: 100%;
+    box-sizing: border-box;
+    color: #2d3436;
+}
+
+#add-bucket-btn {
+    width: 100%;
+    padding: 15px;
+    font-size: 1.1rem;
+    margin-top: 10px;
+}
+
+.bucket-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    padding-bottom: 80px;
+    width: 90%;
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+.bucket-item {
+    background: rgba(255, 255, 255, 0.25);
+    padding: 15px;
+    border-radius: 15px;
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    transition: transform 0.2s, background 0.3s;
+}
+
+.bucket-item:active {
+    transform: scale(0.98);
+}
+
+.bucket-checkbox {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    appearance: none;
+    cursor: pointer;
+    position: relative;
+    transition: background 0.3s, border-color 0.3s;
+    flex-shrink: 0;
+}
+
+.bucket-checkbox:checked {
+    background: #4cd137;
+    border-color: #4cd137;
+}
+
+.bucket-checkbox:checked::after {
+    content: '✓';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-size: 14px;
+}
+
+.bucket-text {
+    flex: 1;
+    font-size: 1.1rem;
+    color: #fff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    transition: opacity 0.3s;
+    text-align: left;
+}
+
+.bucket-item.completed .bucket-text {
+    text-decoration: line-through;
+    opacity: 0.6;
+}
+
+.bucket-item.completed {
+    background: rgba(255, 255, 255, 0.1);
+}
