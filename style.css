@@ -680,3 +680,15 @@ h2 {
 .bucket-item.completed {
     background: rgba(255, 255, 255, 0.1);
 }
+
+.home-footer-msg {
+    text-align: center;
+    margin-top: 30px;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.4rem;
+    color: #fff;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    font-style: italic;
+    opacity: 0.9;
+    padding-bottom: calc(env(safe-area-inset-bottom) + 20px);
+}
