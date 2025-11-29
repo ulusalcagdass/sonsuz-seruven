@@ -261,11 +261,7 @@ h1 {
     align-items: center;
 }
 
-.time-item.full-width {
-    grid-column: auto;
-    /* Saniye artık tam satır değil, 2. sütunda */
-    margin-top: 0;
-}
+
 
 .time-item span {
     font-size: 2.2rem;

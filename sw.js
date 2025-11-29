@@ -1,4 +1,4 @@
-const CACHE_NAME = 'anniversary-app-v1';
+const CACHE_NAME = 'anniversary-app-v2';
 const ASSETS = [
     './',
     './index.html',
@@ -17,10 +17,26 @@ const ASSETS = [
 ];
 
 self.addEventListener('install', (event) => {
+    self.skipWaiting(); // Yeni versiyonun hemen aktif olmasını sağla
     event.waitUntil(
         caches.open(CACHE_NAME)
             .then((cache) => cache.addAll(ASSETS))
     );
+});
+
+self.addEventListener('activate', (event) => {
+    event.waitUntil(
+        caches.keys().then((cacheNames) => {
+            return Promise.all(
+                cacheNames.map((cache) => {
+                    if (cache !== CACHE_NAME) {
+                        return caches.delete(cache);
+                    }
+                })
+            );
+        })
+    );
+    self.clients.claim(); // Tüm açık sekmeleri hemen kontrol altına al
 });
 
 self.addEventListener('fetch', (event) => {
