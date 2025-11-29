@@ -12,41 +12,46 @@ const secondsEl = document.getElementById('seconds');
 function updateCounter() {
     const now = new Date();
 
+    // Tam Yıl Hesabı (Başlangıçtan bugüne geçen tam yıl)
     let years = now.getFullYear() - startDate.getFullYear();
-    let months = now.getMonth() - startDate.getMonth();
-    let days = now.getDate() - startDate.getDate();
+
+    // Ay ve Gün düzeltmeleri (Eğer henüz o ay/gün gelmediyse yılı düşür)
+    let m = now.getMonth() - startDate.getMonth();
+    if (m < 0 || (m === 0 && now.getDate() < startDate.getDate())) {
+        years--;
+    }
+
+    // TOPLAM AY HESABI
+    // (Yıl farkı * 12) + (Ay farkı)
+    let totalMonths = (now.getFullYear() - startDate.getFullYear()) * 12 + (now.getMonth() - startDate.getMonth());
+    // Eğer gün henüz dolmadıysa 1 ay eksilt
+    if (now.getDate() < startDate.getDate()) {
+        totalMonths--;
+    }
+
+    // TOPLAM GÜN HESABI
+    const diff = now - startDate;
+    const totalDays = Math.floor(diff / (1000 * 60 * 60 * 24));
+
+    // Saat, Dakika, Saniye (Kalan süre)
     let hours = now.getHours() - startDate.getHours();
     let minutes = now.getMinutes() - startDate.getMinutes();
     let seconds = now.getSeconds() - startDate.getSeconds();
 
-    // Negatif değerleri düzeltme (Ödünç alma mantığı)
-    if (seconds < 0) {
-        seconds += 60;
-        minutes--;
-    }
-    if (minutes < 0) {
-        minutes += 60;
-        hours--;
-    }
-    if (hours < 0) {
-        hours += 24;
-        days--;
-    }
-    if (days < 0) {
-        // Bir önceki ayın kaç gün çektiğini bul
-        const previousMonth = new Date(now.getFullYear(), now.getMonth(), 0);
-        days += previousMonth.getDate();
-        months--;
-    }
-    if (months < 0) {
-        months += 12;
-        years--;
-    }
+    if (seconds < 0) { seconds += 60; minutes--; }
+    if (minutes < 0) { minutes += 60; hours--; }
+    if (hours < 0) { hours += 24; } // Gün zaten toplam gün olarak hesaplandığı için buradan gün düşmeye gerek yok
 
-    // Kullanıcı isteği: "Girdiğimiz yıl görünsün" (Örn: 7 bitti, 8. yıla girdik -> 8 görünsün)
+    // Ekrana Yazdırma
+    // Yıl: 8. Yılın içindeyiz mantığı (Tam yıl + 1)
     yearsEl.textContent = years + 1;
-    monthsEl.textContent = months.toString().padStart(2, '0');
-    daysEl.textContent = days.toString().padStart(2, '0');
+
+    // Ay: Toplam geçen ay
+    monthsEl.textContent = totalMonths;
+
+    // Gün: Toplam geçen gün
+    daysEl.textContent = totalDays;
+
     hoursEl.textContent = hours.toString().padStart(2, '0');
     minutesEl.textContent = minutes.toString().padStart(2, '0');
     secondsEl.textContent = seconds.toString().padStart(2, '0');
