@@ -1,4 +1,4 @@
-const CACHE_NAME = 'anniversary-app-v2';
+const CACHE_NAME = 'anniversary-app-v3';
 const ASSETS = [
     './',
     './index.html',
