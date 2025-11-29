@@ -43,7 +43,8 @@ function updateCounter() {
         years--;
     }
 
-    yearsEl.textContent = years;
+    // Kullanıcı isteği: "Girdiğimiz yıl görünsün" (Örn: 7 bitti, 8. yıla girdik -> 8 görünsün)
+    yearsEl.textContent = years + 1;
     monthsEl.textContent = months.toString().padStart(2, '0');
     daysEl.textContent = days.toString().padStart(2, '0');
     hoursEl.textContent = hours.toString().padStart(2, '0');
