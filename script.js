@@ -33,28 +33,28 @@ function updateCounter() {
     const diff = now - startDate;
     const totalDays = Math.floor(diff / (1000 * 60 * 60 * 24));
 
-    // Saat, Dakika, Saniye (Kalan süre)
-    let hours = now.getHours() - startDate.getHours();
-    let minutes = now.getMinutes() - startDate.getMinutes();
-    let seconds = now.getSeconds() - startDate.getSeconds();
+    // TOPLAM SAAT HESABI
+    const totalHours = Math.floor(diff / (1000 * 60 * 60));
 
-    if (seconds < 0) { seconds += 60; minutes--; }
-    if (minutes < 0) { minutes += 60; hours--; }
-    if (hours < 0) { hours += 24; } // Gün zaten toplam gün olarak hesaplandığı için buradan gün düşmeye gerek yok
+    // TOPLAM DAKİKA HESABI
+    const totalMinutes = Math.floor(diff / (1000 * 60));
+
+    // TOPLAM SANİYE HESABI
+    const totalSeconds = Math.floor(diff / 1000);
 
     // Ekrana Yazdırma
     // Yıl: 8. Yılın içindeyiz mantığı (Tam yıl + 1)
     yearsEl.textContent = years + 1;
 
     // Ay: Toplam geçen ay
-    monthsEl.textContent = totalMonths;
+    monthsEl.textContent = totalMonths.toLocaleString('tr-TR');
 
     // Gün: Toplam geçen gün
-    daysEl.textContent = totalDays;
+    daysEl.textContent = totalDays.toLocaleString('tr-TR');
 
-    hoursEl.textContent = hours.toString().padStart(2, '0');
-    minutesEl.textContent = minutes.toString().padStart(2, '0');
-    secondsEl.textContent = seconds.toString().padStart(2, '0');
+    hoursEl.textContent = totalHours.toLocaleString('tr-TR');
+    minutesEl.textContent = totalMinutes.toLocaleString('tr-TR');
+    secondsEl.textContent = totalSeconds.toLocaleString('tr-TR');
 }
 
 setInterval(updateCounter, 1000);
