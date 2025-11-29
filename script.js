@@ -39,12 +39,12 @@ function updateCounter() {
     // TOPLAM DAKİKA HESABI
     const totalMinutes = Math.floor(diff / (1000 * 60));
 
-    // TOPLAM SANİYE HESABI
-    const totalSeconds = Math.floor(diff / 1000);
+    // Saniye (Kalan süre - Normal akış 0-59)
+    let seconds = now.getSeconds() - startDate.getSeconds();
+    if (seconds < 0) { seconds += 60; }
 
     // Ekrana Yazdırma
-    // Yıl: 8. Yılın içindeyiz mantığı (Tam yıl + 1)
-    yearsEl.textContent = years + 1;
+    yearsEl.textContent = years + 1; // 8. Yıl
 
     // Ay: Toplam geçen ay
     monthsEl.textContent = totalMonths.toLocaleString('tr-TR');
@@ -54,7 +54,7 @@ function updateCounter() {
 
     hoursEl.textContent = totalHours.toLocaleString('tr-TR');
     minutesEl.textContent = totalMinutes.toLocaleString('tr-TR');
-    secondsEl.textContent = totalSeconds.toLocaleString('tr-TR');
+    secondsEl.textContent = seconds.toString().padStart(2, '0');
 }
 
 setInterval(updateCounter, 1000);

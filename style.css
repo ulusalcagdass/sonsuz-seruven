@@ -264,10 +264,13 @@ h1 {
 
 
 .time-item span {
-    font-size: 2.2rem;
+    /* Büyük sayılar (milyonlar) için responsive font ayarı */
+    font-size: clamp(1.2rem, 6vw, 2.2rem);
     font-weight: 300;
     font-family: 'Montserrat', sans-serif;
     line-height: 1;
+    word-break: break-word;
+    /* Gerekirse alt satıra geçsin */
 }
 
 .time-item p {
