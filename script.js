@@ -2,6 +2,8 @@
 const startDate = new Date('2018-11-30T00:00:00');
 
 // DOM Elementleri
+const yearsEl = document.getElementById('years');
+const monthsEl = document.getElementById('months');
 const daysEl = document.getElementById('days');
 const hoursEl = document.getElementById('hours');
 const minutesEl = document.getElementById('minutes');
@@ -9,16 +11,49 @@ const secondsEl = document.getElementById('seconds');
 
 function updateCounter() {
     const now = new Date();
+
+    // Tam Yıl Hesabı (Başlangıçtan bugüne geçen tam yıl)
+    let years = now.getFullYear() - startDate.getFullYear();
+
+    // Ay ve Gün düzeltmeleri (Eğer henüz o ay/gün gelmediyse yılı düşür)
+    let m = now.getMonth() - startDate.getMonth();
+    if (m < 0 || (m === 0 && now.getDate() < startDate.getDate())) {
+        years--;
+    }
+
+    // TOPLAM AY HESABI
+    // (Yıl farkı * 12) + (Ay farkı)
+    let totalMonths = (now.getFullYear() - startDate.getFullYear()) * 12 + (now.getMonth() - startDate.getMonth());
+    // Eğer gün henüz dolmadıysa 1 ay eksilt
+    if (now.getDate() < startDate.getDate()) {
+        totalMonths--;
+    }
+
+    // TOPLAM GÜN HESABI
     const diff = now - startDate;
+    const totalDays = Math.floor(diff / (1000 * 60 * 60 * 24));
 
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
-    const minutes = Math.floor((diff / (1000 * 60)) % 60);
-    const seconds = Math.floor((diff / 1000) % 60);
+    // TOPLAM SAAT HESABI
+    const totalHours = Math.floor(diff / (1000 * 60 * 60));
 
-    daysEl.textContent = days;
-    hoursEl.textContent = hours.toString().padStart(2, '0');
-    minutesEl.textContent = minutes.toString().padStart(2, '0');
+    // TOPLAM DAKİKA HESABI
+    const totalMinutes = Math.floor(diff / (1000 * 60));
+
+    // Saniye (Kalan süre - Normal akış 0-59)
+    let seconds = now.getSeconds() - startDate.getSeconds();
+    if (seconds < 0) { seconds += 60; }
+
+    // Ekrana Yazdırma
+    yearsEl.textContent = years + 1; // 8. Yıl
+
+    // Ay: Toplam geçen ay
+    monthsEl.textContent = totalMonths.toLocaleString('tr-TR');
+
+    // Gün: Toplam geçen gün
+    daysEl.textContent = totalDays.toLocaleString('tr-TR');
+
+    hoursEl.textContent = totalHours.toLocaleString('tr-TR');
+    minutesEl.textContent = totalMinutes.toLocaleString('tr-TR');
     secondsEl.textContent = seconds.toString().padStart(2, '0');
 }
 
@@ -28,14 +63,15 @@ updateCounter();
 // Müzik Kontrolü (Görünmez & Otomatik)
 const bgMusic = document.getElementById('bg-music');
 
-// Sayfa yüklendiğinde otomatik çalmayı dene
-// Sayfa yüklendiğinde otomatik çalmayı dene
-window.addEventListener('load', () => {
+// Müzik işlemlerini sayfa yüklenmesini beklemeden başlat
+document.addEventListener('DOMContentLoaded', () => {
     bgMusic.volume = 0.5;
 
     // Şarkının "Büklüm büklüm boynunda" kısmından başlaması için saniye ayarı
-    // Lütfen buraya o kısmın kaçıncı saniyede başladığını yazın (Örn: 15.5)
     bgMusic.currentTime = 42;
+
+    // Tarayıcıya dosyayı hemen yüklemeye başlamasını söyle
+    bgMusic.load();
 
     // Müzik çalma girişimi
     const attemptPlay = () => {
@@ -43,7 +79,6 @@ window.addEventListener('load', () => {
         if (playPromise !== undefined) {
             playPromise.then(() => {
                 console.log("Müzik çalıyor. 🎵");
-                // Başarılıysa dinleyicileri kaldır
                 removeUnlockListeners();
             }).catch(error => {
                 console.log("Otomatik çalma engellendi. Etkileşim bekleniyor.");
@@ -51,11 +86,11 @@ window.addEventListener('load', () => {
         }
     };
 
-    // İlk yüklemede dene
-    attemptPlay();
-
     // Kullanıcı etkileşimi ile kilidi aç
     const unlockAudio = () => {
+        // Tekrar denemeden önce süreyi garantiye al
+        if (bgMusic.currentTime < 42) bgMusic.currentTime = 42;
+
         bgMusic.play().then(() => {
             console.log("Etkileşim ile müzik başladı.");
             removeUnlockListeners();
@@ -69,11 +104,14 @@ window.addEventListener('load', () => {
         window.removeEventListener('keydown', unlockAudio, true);
     };
 
-    // Daha agresif dinleyiciler (Capture phase)
+    // Dinleyicileri HEMEN ekle (Load olayını bekleme)
     window.addEventListener('click', unlockAudio, true);
     window.addEventListener('touchstart', unlockAudio, true);
     window.addEventListener('scroll', unlockAudio, true);
     window.addEventListener('keydown', unlockAudio, true);
+
+    // İlk denemeyi yap
+    attemptPlay();
 });
 
 
@@ -173,7 +211,7 @@ getLocationBtn.addEventListener('click', () => {
         const lon = position.coords.longitude;
         getLocationBtn.textContent = "Adres bulunuyor...";
         try {
-            const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`);
+            const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json?lat=${lat}&lon=${lon}`);
             const data = await response.json();
             const district = data.address.suburb || data.address.district || "";
             const city = data.address.province || data.address.city || "";
@@ -220,7 +258,6 @@ addNoteBtn.addEventListener('click', async () => {
             alert("Anı telefona kaydedildi!");
         } catch (error) {
             alert("HATA: Telefon hafızası dolu! Lütfen bazı fotoğrafları veya anıları silip tekrar deneyin.");
-            console.error("LocalStorage hatası:", error);
         }
     }
     journalLocation.value = '';
@@ -259,11 +296,6 @@ function renderMemories() {
         if (selectedDate) {
             query = query.where("date", "==", selectedDate);
         }
-
-        // Sıralama: Tarih seçiliyse timestamp'e göre, değilse tarihe göre
-        // Not: Firestore'da 'where' ve 'orderBy' farklı alanlardaysa index gerekir.
-        // Basitlik için: Tarih seçiliyse client-side sıralama veya sadece eklenme sırası yeterli.
-        // Karmaşıklığı önlemek için sadece filtreliyoruz, sıralamayı client'ta yapabiliriz veya index hatası almamak için orderBy'ı kaldırabiliriz.
 
         unsubscribeJournal = query.onSnapshot(snapshot => {
             journalList.innerHTML = '';
@@ -360,7 +392,7 @@ function resizeImage(file) {
                 const canvas = document.createElement('canvas');
                 let width = img.width;
                 let height = img.height;
-                const MAX_SIZE = 800;
+                const MAX_SIZE = 800; // Hafıza için oldukça iyi, belki 600 yapılabilir
                 if (width > height) {
                     if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; }
                 } else {
@@ -390,8 +422,6 @@ photoUpload.addEventListener('change', async (e) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    // DÜZELTME: Eğer filtrede bir tarih seçiliyse O TARİHE kaydet, yoksa bugüne kaydet.
-    // Böylece geçmişe dönük fotoğraf yüklenebilir.
     let uploadDate = photoFilterDate.value;
     if (!uploadDate) {
         uploadDate = getLocalDateString();
@@ -412,15 +442,18 @@ photoUpload.addEventListener('change', async (e) => {
             if (isFirebaseActive) {
                 await db.collection("photos").add({ url: base64Image, date: uploadDate, timestamp: new Date().toISOString() });
             } else {
-                const photos = JSON.parse(localStorage.getItem('photos') || '[]');
-                photos.push({ id: Date.now() + Math.random().toString(36), url: base64Image, date: uploadDate });
-                localStorage.setItem('photos', JSON.stringify(photos));
+                try {
+                    const photos = JSON.parse(localStorage.getItem('photos') || '[]');
+                    photos.push({ id: Date.now() + Math.random().toString(36), url: base64Image, date: uploadDate });
+                    localStorage.setItem('photos', JSON.stringify(photos));
+                } catch (error) {
+                    hideUploadStatus();
+                    alert("HATA: Telefon hafızası dolu! Fotoğraf yüklenemedi. Lütfen bazı fotoğrafları silin.");
+                    return;
+                }
             }
         } catch (error) {
-            console.error("Fotoğraf yükleme hatası:", error);
-            hideUploadStatus();
-            alert("HATA: Telefon hafızası dolu! Fotoğraf yüklenemedi. Lütfen bazı eski fotoğrafları silip tekrar deneyin.");
-            return; // Hata varsa döngüyü durdur
+            console.error("Hata:", error);
         }
     }
     hideUploadStatus();
@@ -514,3 +547,122 @@ async function deletePhoto(id) {
 
 renderMemories();
 renderPhotos();
+
+// --- YAPILACAKLAR LİSTESİ (BUCKET LIST) ---
+const bucketInput = document.getElementById('bucket-input');
+const addBucketBtn = document.getElementById('add-bucket-btn');
+const bucketList = document.getElementById('bucket-list');
+let unsubscribeBucket = null;
+
+// Event Listener'ı güvenli bir şekilde ekle
+if (addBucketBtn) {
+    addBucketBtn.addEventListener('click', addBucketItem);
+}
+
+async function addBucketItem() {
+    const text = bucketInput.value.trim();
+    if (!text) return;
+
+    if (isFirebaseActive) {
+        await db.collection("bucket_list").add({
+            text: text,
+            completed: false,
+            timestamp: new Date().toISOString()
+        });
+    } else {
+        try {
+            const items = JSON.parse(localStorage.getItem('bucket_list') || '[]');
+            items.push({ id: Date.now().toString(), text: text, completed: false });
+            localStorage.setItem('bucket_list', JSON.stringify(items));
+            renderBucketList();
+        } catch (error) {
+            alert("HATA: Telefon hafızası dolu! Yeni madde eklenemedi.");
+        }
+    }
+    bucketInput.value = '';
+}
+
+function renderBucketList() {
+    if (!bucketList) return;
+    bucketList.innerHTML = '';
+
+    if (isFirebaseActive) {
+        if (unsubscribeBucket) unsubscribeBucket();
+
+        unsubscribeBucket = db.collection("bucket_list")
+            .orderBy("timestamp", "desc")
+            .onSnapshot(snapshot => {
+                bucketList.innerHTML = '';
+                snapshot.forEach(doc => {
+                    createBucketElement(doc.id, doc.data());
+                });
+            });
+    } else {
+        const items = JSON.parse(localStorage.getItem('bucket_list') || '[]');
+        items.forEach(item => createBucketElement(item.id, item));
+    }
+}
+
+function createBucketElement(id, data) {
+    const item = document.createElement('div');
+    item.className = `bucket-item ${data.completed ? 'completed' : ''}`;
+    item.innerHTML = `
+        <input type="checkbox" class="bucket-checkbox" ${data.completed ? 'checked' : ''} onchange="toggleBucketItem('${id}', this.checked)">
+        <span class="bucket-text">${data.text}</span>
+        <button class="delete-btn" onclick="deleteBucketItem('${id}')">🗑️</button>
+    `;
+    bucketList.appendChild(item);
+}
+
+window.toggleBucketItem = async function (id, isChecked) {
+    if (isChecked) {
+        // KONFETİ PATLAT! 🎉
+        if (typeof confetti === 'function') {
+            confetti({
+                particleCount: 100,
+                spread: 70,
+                origin: { y: 0.6 }
+            });
+        }
+    }
+
+    if (isFirebaseActive) {
+        await db.collection("bucket_list").doc(id).update({ completed: isChecked });
+    } else {
+        const items = JSON.parse(localStorage.getItem('bucket_list') || '[]');
+        const item = items.find(i => i.id === id);
+        if (item) item.completed = isChecked;
+        localStorage.setItem('bucket_list', JSON.stringify(items));
+        renderBucketList();
+    }
+};
+
+window.deleteBucketItem = async function (id) {
+    if (confirm("Bu maddeyi silmek istiyor musun?")) {
+        if (isFirebaseActive) {
+            await db.collection("bucket_list").doc(id).delete();
+        } else {
+            let items = JSON.parse(localStorage.getItem('bucket_list') || '[]');
+            items = items.filter(i => i.id !== id);
+            localStorage.setItem('bucket_list', JSON.stringify(items));
+            renderBucketList();
+        }
+    }
+};
+
+// Sayfa geçişlerinde listeyi yükle
+const observer = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+        if (mutation.target.id === 'bucket-list-page' &&
+            mutation.target.classList.contains('active-page') &&
+            !mutation.oldValue.includes('active-page')) {
+            renderBucketList();
+        }
+    });
+});
+
+const bucketPage = document.getElementById('bucket-list-page');
+if (bucketPage) {
+    observer.observe(bucketPage, { attributes: true, attributeFilter: ['class'], attributeOldValue: true });
+    if (bucketPage.classList.contains('active-page')) renderBucketList();
+}

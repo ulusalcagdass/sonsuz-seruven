@@ -45,6 +45,7 @@
                 <li data-target="home-page" class="active">⏳ Sayaç</li>
                 <li data-target="journal-page">📖 Anı Defteri</li>
                 <li data-target="album-page">📸 Fotoğraf Albümü</li>
+                <li data-target="bucket-list-page">✨ Yapılacaklar</li>
             </ul>
         </nav>
 
@@ -67,18 +68,26 @@
 
                     <div class="counter-grid">
                         <div class="time-item">
+                            <span id="years">00</span>
+                            <p>YIL</p>
+                        </div>
+                        <div class="time-item">
+                            <span id="months">00</span>
+                            <p>TOPLAM AY</p>
+                        </div>
+                        <div class="time-item">
                             <span id="days">00</span>
-                            <p>GÜN</p>
+                            <p>TOPLAM GÜN</p>
                         </div>
                         <div class="time-item">
                             <span id="hours">00</span>
-                            <p>SAAT</p>
+                            <p>TOPLAM SAAT</p>
                         </div>
                         <div class="time-item">
                             <span id="minutes">00</span>
-                            <p>DAKİKA</p>
+                            <p>TOPLAM DAKİKA</p>
                         </div>
-                        <div class="time-item full-width">
+                        <div class="time-item">
                             <span id="seconds">00</span>
                             <p>SANİYE</p>
                         </div>
@@ -86,7 +95,8 @@
                 </div>
 
                 <!-- Footer Text -->
-                <p class="footer-msg">Seni Çok Seviyorum</p>
+                <p class="home-footer-msg">Seni çok seviyorum, iyi ki varsın ❤️</p>
+
 
             </section>
 
@@ -134,6 +144,18 @@
                 </div>
             </section>
 
+            <!-- 4. BUCKET LIST PAGE -->
+            <section id="bucket-list-page" class="page hidden-page">
+                <h2>Yapılacaklar Listesi</h2>
+                <div class="bucket-input-card">
+                    <input type="text" id="bucket-input" placeholder="Birlikte yapılacak bir hayal ekle...">
+                    <button id="add-bucket-btn" class="primary-btn">Ekle</button>
+                </div>
+                <div id="bucket-list" class="bucket-list">
+                    <!-- Maddeler buraya gelecek -->
+                </div>
+            </section>
+
         </main>
     </div>
 
@@ -142,6 +164,9 @@
         <span class="close-lightbox">&times;</span>
         <img class="lightbox-content" id="lightbox-img">
     </div>
+
+    <!-- Confetti Effect -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
