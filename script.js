@@ -2,8 +2,6 @@
 const startDate = new Date('2018-11-30T00:00:00');
 
 // DOM Elementleri
-const yearsEl = document.getElementById('years');
-const monthsEl = document.getElementById('months');
 const daysEl = document.getElementById('days');
 const hoursEl = document.getElementById('hours');
 const minutesEl = document.getElementById('minutes');
@@ -11,49 +9,16 @@ const secondsEl = document.getElementById('seconds');
 
 function updateCounter() {
     const now = new Date();
-
-    // Tam Yıl Hesabı (Başlangıçtan bugüne geçen tam yıl)
-    let years = now.getFullYear() - startDate.getFullYear();
-
-    // Ay ve Gün düzeltmeleri (Eğer henüz o ay/gün gelmediyse yılı düşür)
-    let m = now.getMonth() - startDate.getMonth();
-    if (m < 0 || (m === 0 && now.getDate() < startDate.getDate())) {
-        years--;
-    }
-
-    // TOPLAM AY HESABI
-    // (Yıl farkı * 12) + (Ay farkı)
-    let totalMonths = (now.getFullYear() - startDate.getFullYear()) * 12 + (now.getMonth() - startDate.getMonth());
-    // Eğer gün henüz dolmadıysa 1 ay eksilt
-    if (now.getDate() < startDate.getDate()) {
-        totalMonths--;
-    }
-
-    // TOPLAM GÜN HESABI
     const diff = now - startDate;
-    const totalDays = Math.floor(diff / (1000 * 60 * 60 * 24));
 
-    // TOPLAM SAAT HESABI
-    const totalHours = Math.floor(diff / (1000 * 60 * 60));
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+    const minutes = Math.floor((diff / (1000 * 60)) % 60);
+    const seconds = Math.floor((diff / 1000) % 60);
 
-    // TOPLAM DAKİKA HESABI
-    const totalMinutes = Math.floor(diff / (1000 * 60));
-
-    // Saniye (Kalan süre - Normal akış 0-59)
-    let seconds = now.getSeconds() - startDate.getSeconds();
-    if (seconds < 0) { seconds += 60; }
-
-    // Ekrana Yazdırma
-    yearsEl.textContent = years + 1; // 8. Yıl
-
-    // Ay: Toplam geçen ay
-    monthsEl.textContent = totalMonths.toLocaleString('tr-TR');
-
-    // Gün: Toplam geçen gün
-    daysEl.textContent = totalDays.toLocaleString('tr-TR');
-
-    hoursEl.textContent = totalHours.toLocaleString('tr-TR');
-    minutesEl.textContent = totalMinutes.toLocaleString('tr-TR');
+    daysEl.textContent = days;
+    hoursEl.textContent = hours.toString().padStart(2, '0');
+    minutesEl.textContent = minutes.toString().padStart(2, '0');
     secondsEl.textContent = seconds.toString().padStart(2, '0');
 }
 
@@ -63,15 +28,14 @@ updateCounter();
 // Müzik Kontrolü (Görünmez & Otomatik)
 const bgMusic = document.getElementById('bg-music');
 
-// Müzik işlemlerini sayfa yüklenmesini beklemeden başlat
-document.addEventListener('DOMContentLoaded', () => {
+// Sayfa yüklendiğinde otomatik çalmayı dene
+// Sayfa yüklendiğinde otomatik çalmayı dene
+window.addEventListener('load', () => {
     bgMusic.volume = 0.5;
 
     // Şarkının "Büklüm büklüm boynunda" kısmından başlaması için saniye ayarı
+    // Lütfen buraya o kısmın kaçıncı saniyede başladığını yazın (Örn: 15.5)
     bgMusic.currentTime = 42;
-
-    // Tarayıcıya dosyayı hemen yüklemeye başlamasını söyle
-    bgMusic.load();
 
     // Müzik çalma girişimi
     const attemptPlay = () => {
@@ -79,6 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (playPromise !== undefined) {
             playPromise.then(() => {
                 console.log("Müzik çalıyor. 🎵");
+                // Başarılıysa dinleyicileri kaldır
                 removeUnlockListeners();
             }).catch(error => {
                 console.log("Otomatik çalma engellendi. Etkileşim bekleniyor.");
@@ -86,11 +51,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    // İlk yüklemede dene
+    attemptPlay();
+
     // Kullanıcı etkileşimi ile kilidi aç
     const unlockAudio = () => {
-        // Tekrar denemeden önce süreyi garantiye al
-        if (bgMusic.currentTime < 42) bgMusic.currentTime = 42;
-
         bgMusic.play().then(() => {
             console.log("Etkileşim ile müzik başladı.");
             removeUnlockListeners();
@@ -104,14 +69,11 @@ document.addEventListener('DOMContentLoaded', () => {
         window.removeEventListener('keydown', unlockAudio, true);
     };
 
-    // Dinleyicileri HEMEN ekle (Load olayını bekleme)
+    // Daha agresif dinleyiciler (Capture phase)
     window.addEventListener('click', unlockAudio, true);
     window.addEventListener('touchstart', unlockAudio, true);
     window.addEventListener('scroll', unlockAudio, true);
     window.addEventListener('keydown', unlockAudio, true);
-
-    // İlk denemeyi yap
-    attemptPlay();
 });
 
 
@@ -139,154 +101,10 @@ try {
         isFirebaseActive = true;
         console.log("Firebase aktif!");
     } else {
-        console.log("Firebase ayarlanmadı, IndexedDB kullanılacak.");
-        initDB(); // IndexedDB başlat
+        console.log("Firebase ayarlanmadı, LocalStorage kullanılıyor.");
     }
 } catch (e) {
     console.error("Firebase başlatma hatası:", e);
-    // Hata olsa bile IndexedDB denenebilir
-    if (!isFirebaseActive) initDB();
-}
-
-// --- INDEXEDDB ALTYAPISI (Hafıza Artırımı İçin) ---
-const DB_NAME = 'AnniversaryAppDB';
-const DB_VERSION = 1;
-let idb;
-
-function initDB() {
-    return new Promise((resolve, reject) => {
-        const request = indexedDB.open(DB_NAME, DB_VERSION);
-
-        request.onerror = (event) => {
-            console.error("IndexedDB hatası:", event.target.error);
-            alert("Veritabanı başlatılamadı! Tarayıcınız desteklemiyor olabilir.");
-            reject(event.target.error);
-        };
-
-        request.onsuccess = (event) => {
-            idb = event.target.result;
-            console.log("IndexedDB başarıyla açıldı.");
-            // Veri taşıma işlemini başlat (Migration)
-            migrateFromLocalStorage();
-            resolve(idb);
-        };
-
-        request.onupgradeneeded = (event) => {
-            const db = event.target.result;
-            // Tabloları oluştur (Object Stores)
-            if (!db.objectStoreNames.contains('memories')) {
-                db.createObjectStore('memories', { keyPath: 'id' });
-            }
-            if (!db.objectStoreNames.contains('photos')) {
-                db.createObjectStore('photos', { keyPath: 'id' });
-            }
-            if (!db.objectStoreNames.contains('bucket_list')) {
-                db.createObjectStore('bucket_list', { keyPath: 'id' });
-            }
-            console.log("IndexedDB tabloları oluşturuldu.");
-        };
-    });
-}
-
-// LocalStorage'dan Veri Taşıma (Migration)
-async function migrateFromLocalStorage() {
-    const stores = ['memories', 'photos', 'bucket_list'];
-    let migrationCount = 0;
-
-    for (const storeName of stores) {
-        const rawData = localStorage.getItem(storeName);
-        if (rawData) {
-            try {
-                const data = JSON.parse(rawData);
-                if (Array.isArray(data) && data.length > 0) {
-                    console.log(`${storeName} için ${data.length} veri taşınıyor...`);
-                    const tx = idb.transaction(storeName, 'readwrite');
-                    const store = tx.objectStore(storeName);
-
-                    data.forEach(item => {
-                        // ID kontrolü (yoksa ekle)
-                        if (!item.id) item.id = Date.now().toString() + Math.random().toString(36).substr(2, 9);
-                        store.put(item);
-                    });
-
-                    await new Promise((resolve) => {
-                        tx.oncomplete = () => {
-                            console.log(`${storeName} taşındı.`);
-                            localStorage.removeItem(storeName); // Temizlik
-                            migrationCount++;
-                            resolve();
-                        };
-                        tx.onerror = () => resolve(); // Hata olsa da devam et
-                    });
-                }
-            } catch (e) {
-                console.error("Migration hatası:", e);
-            }
-        }
-    }
-
-    if (migrationCount > 0) {
-        alert("Eski verileriniz başarıyla geniş hafızaya taşındı! 🎉");
-        // Sayfayı yenilemeye gerek yok, veriler idb'de.
-        // Fonksiyonlar render edildiğinde idb'den çekecek.
-        renderMemories();
-        renderPhotos();
-        renderBucketList();
-    } else {
-        // İlk yükleme veya zaten taşınmışsa renderları çağır
-        renderMemories();
-        renderPhotos();
-        renderBucketList();
-    }
-}
-
-// GENEL VERİTABANI FONKSİYONLARI (CRUD)
-function dbAdd(storeName, item) {
-    return new Promise((resolve, reject) => {
-        if (!idb) { reject("Veritabanı hazır değil"); return; }
-        const tx = idb.transaction(storeName, 'readwrite');
-        const store = tx.objectStore(storeName);
-        const request = store.add(item);
-
-        request.onsuccess = () => resolve();
-        request.onerror = (e) => reject(e.target.error);
-    });
-}
-
-function dbGetAll(storeName) {
-    return new Promise((resolve, reject) => {
-        if (!idb) { resolve([]); return; } // DB yoksa boş dön
-        const tx = idb.transaction(storeName, 'readonly');
-        const store = tx.objectStore(storeName);
-        const request = store.getAll();
-
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = (e) => reject(e.target.error);
-    });
-}
-
-function dbDelete(storeName, id) {
-    return new Promise((resolve, reject) => {
-        if (!idb) { reject("DB yok"); return; }
-        const tx = idb.transaction(storeName, 'readwrite');
-        const store = tx.objectStore(storeName);
-        const request = store.delete(id);
-
-        request.onsuccess = () => resolve();
-        request.onerror = (e) => reject(e.target.error);
-    });
-}
-
-function dbUpdate(storeName, item) {
-    return new Promise((resolve, reject) => {
-        if (!idb) { reject("DB yok"); return; }
-        const tx = idb.transaction(storeName, 'readwrite');
-        const store = tx.objectStore(storeName);
-        const request = store.put(item); // put = güncelle veya ekle
-
-        request.onsuccess = () => resolve();
-        request.onerror = (e) => reject(e.target.error);
-    });
 }
 
 // --- MENÜ VE NAVİGASYON ---
@@ -383,32 +201,30 @@ addNoteBtn.addEventListener('click', async () => {
         return;
     }
 
-    const memory = {
-        id: Date.now().toString() + Math.random().toString(36).substr(2, 5), // Benzersiz ID
-        date,
-        location,
-        note,
-        timestamp: new Date().toISOString()
-    };
+    const memory = { date, location, note, timestamp: new Date().toISOString() };
 
-    try {
-        if (isFirebaseActive) {
+    if (isFirebaseActive) {
+        try {
             await db.collection("memories").add(memory);
-        } else {
-            await dbAdd('memories', memory);
+            alert("Anı başarıyla kaydedildi!");
+        } catch (error) {
+            alert("Kaydedilirken hata oluştu.");
         }
-        alert("Anı başarıyla kaydedildi!");
-        journalLocation.value = '';
-        journalNote.value = '';
-        if (!isFirebaseActive) renderMemories();
-    } catch (error) {
-        console.error("Anı kaydetme hatası:", error);
-        if (error.name === 'QuotaExceededError') {
-            alert("Hafıza TAMAMEN dolu! Lütfen cihazınızda yer açın.");
-        } else {
-            alert("Kaydedilemedi: " + error.message);
+    } else {
+        try {
+            const memories = JSON.parse(localStorage.getItem('memories') || '[]');
+            memory.id = Date.now().toString();
+            memories.push(memory);
+            localStorage.setItem('memories', JSON.stringify(memories));
+            renderMemories();
+            alert("Anı telefona kaydedildi!");
+        } catch (error) {
+            alert("HATA: Telefon hafızası dolu! Lütfen bazı fotoğrafları veya anıları silip tekrar deneyin.");
+            console.error("LocalStorage hatası:", error);
         }
     }
+    journalLocation.value = '';
+    journalNote.value = '';
 });
 
 function formatDateManual(dateStr) {
@@ -427,49 +243,58 @@ function formatDateManual(dateStr) {
 
 let unsubscribeJournal = null; // Dinleyiciyi durdurmak için
 
-async function renderMemories() {
+function renderMemories() {
     journalList.innerHTML = '';
     const selectedDate = journalDate.value;
 
     if (isFirebaseActive) {
-        // ... (Firebase kodları aynı kalır) ...
-        // Önceki dinleyiciyi temizle
-        if (unsubscribeJournal) unsubscribeJournal();
+        // Önceki dinleyiciyi temizle (varsa)
+        if (unsubscribeJournal) {
+            unsubscribeJournal();
+        }
 
         let query = db.collection("memories");
-        if (selectedDate) query = query.where("date", "==", selectedDate);
+
+        // Eğer tarih seçiliyse, o tarihe göre filtrele
+        if (selectedDate) {
+            query = query.where("date", "==", selectedDate);
+        }
+
+        // Sıralama: Tarih seçiliyse timestamp'e göre, değilse tarihe göre
+        // Not: Firestore'da 'where' ve 'orderBy' farklı alanlardaysa index gerekir.
+        // Basitlik için: Tarih seçiliyse client-side sıralama veya sadece eklenme sırası yeterli.
+        // Karmaşıklığı önlemek için sadece filtreliyoruz, sıralamayı client'ta yapabiliriz veya index hatası almamak için orderBy'ı kaldırabiliriz.
 
         unsubscribeJournal = query.onSnapshot(snapshot => {
             journalList.innerHTML = '';
             const memories = [];
-            snapshot.forEach(doc => { memories.push({ id: doc.id, ...doc.data() }); });
+            snapshot.forEach(doc => {
+                memories.push({ id: doc.id, ...doc.data() });
+            });
+
+            // Client-side sıralama (En yeni en üstte)
             memories.sort((a, b) => (b.timestamp || '').localeCompare(a.timestamp || ''));
+
             if (memories.length === 0) {
                 journalList.innerHTML = '<div class="empty-state">Bu tarihte anı yok.</div>';
                 return;
             }
+
             memories.forEach(memory => createMemoryCard(memory, memory.id));
         });
 
     } else {
-        // INDEXEDDB OKUMA
-        try {
-            let memories = await dbGetAll('memories');
-
-            if (selectedDate) {
-                memories = memories.filter(m => m.date === selectedDate);
-            }
-            // Tarihe göre sıralama (Yeniden eskiye)
-            memories.sort((a, b) => b.date.localeCompare(a.date));
-
-            if (memories.length === 0) {
-                journalList.innerHTML = '<div class="empty-state">Bu tarihte anı yok.</div>';
-                return;
-            }
-            memories.forEach(memory => createMemoryCard(memory, memory.id));
-        } catch (e) {
-            console.error("Anılar yüklenemedi:", e);
+        let memories = JSON.parse(localStorage.getItem('memories') || '[]');
+        if (selectedDate) {
+            memories = memories.filter(m => m.date === selectedDate);
         }
+        memories.sort((a, b) => b.date.localeCompare(a.date));
+
+        if (memories.length === 0) {
+            journalList.innerHTML = '<div class="empty-state">Bu tarihte anı yok.</div>';
+            return;
+        }
+        memories.forEach(memory => createMemoryCard(memory, memory.id));
     }
 }
 
@@ -495,12 +320,10 @@ window.deleteMemory = async function (id) {
         if (isFirebaseActive) {
             await db.collection("memories").doc(id).delete();
         } else {
-            try {
-                await dbDelete('memories', id);
-                renderMemories();
-            } catch (e) {
-                alert("Silinemedi: " + e.message);
-            }
+            let memories = JSON.parse(localStorage.getItem('memories') || '[]');
+            memories = memories.filter(m => m.id !== id);
+            localStorage.setItem('memories', JSON.stringify(memories));
+            renderMemories();
         }
     }
 };
@@ -586,21 +409,18 @@ photoUpload.addEventListener('change', async (e) => {
             showUploadStatus(`${i + 1}/${totalFiles} yükleniyor... (${formattedDate})`);
             const base64Image = await resizeImage(files[i]);
 
-            const photoData = {
-                id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-                url: base64Image,
-                date: uploadDate,
-                timestamp: new Date().toISOString()
-            };
-
             if (isFirebaseActive) {
-                await db.collection("photos").add(photoData);
+                await db.collection("photos").add({ url: base64Image, date: uploadDate, timestamp: new Date().toISOString() });
             } else {
-                await dbAdd('photos', photoData);
+                const photos = JSON.parse(localStorage.getItem('photos') || '[]');
+                photos.push({ id: Date.now() + Math.random().toString(36), url: base64Image, date: uploadDate });
+                localStorage.setItem('photos', JSON.stringify(photos));
             }
         } catch (error) {
             console.error("Fotoğraf yükleme hatası:", error);
-            alert(`Fotoğraf yüklenemedi (${files[i].name}): Hafıza dolu olabilir.`);
+            hideUploadStatus();
+            alert("HATA: Telefon hafızası dolu! Fotoğraf yüklenemedi. Lütfen bazı eski fotoğrafları silip tekrar deneyin.");
+            return; // Hata varsa döngüyü durdur
         }
     }
     hideUploadStatus();
@@ -639,32 +459,14 @@ function renderPhotos() {
             photos.forEach(photo => createPhotoElement(photo.url, photo.id));
         });
     } else {
-        // INDEXEDDB OKUMA
-        try {
-            let photos = await dbGetAll('photos');
-
-            if (filterDate) {
-                photos = photos.filter(p => p.date === filterDate);
-            }
-
-            if (photos.length === 0) {
-                photoGrid.innerHTML = '<div class="empty-state">Fotoğraf bulunamadı.</div>';
-                return;
-            }
-
-            // Sıralama (Yeniden eskiye) - Timestamp varsa kullan yoksa ters çevir
-            photos.sort((a, b) => {
-                if (a.timestamp && b.timestamp) return b.timestamp.localeCompare(a.timestamp);
-                return 0; // Doğal sıra kalsın, zaten son eklenen en son gelmişti ama dbGetAll sırası garanti değil.
-            });
-            // dbGetAll genellikle keyPath sırasına göre gelir (id). ID timestamp içeriyorsa sıralı olabilir.
-            // Garanti olsun diye reverse ya da sort:
-            photos.reverse();
-
-            photos.forEach(photo => createPhotoElement(photo.url, photo.id));
-        } catch (e) {
-            console.error("Fotoğraflar yüklenemedi:", e);
+        let photos = JSON.parse(localStorage.getItem('photos') || '[]');
+        if (filterDate) photos = photos.filter(p => p.date === filterDate);
+        if (photos.length === 0) {
+            photoGrid.innerHTML = '<div class="empty-state">Fotoğraf bulunamadı.</div>';
+            return;
         }
+        photos.reverse();
+        photos.forEach(photo => createPhotoElement(photo.url, photo.id));
     }
 }
 
@@ -702,174 +504,13 @@ function openLightbox(url, id) {
 async function deletePhoto(id) {
     if (isFirebaseActive) {
         await db.collection("photos").doc(id).delete();
-        if (isFirebaseActive) {
-            await db.collection("photos").doc(id).delete();
-        } else {
-            try {
-                await dbDelete('photos', id);
-                renderPhotos();
-            } catch (e) {
-                alert("Silinemedi: " + e.message);
-            }
-        }
+    } else {
+        let photos = JSON.parse(localStorage.getItem('photos') || '[]');
+        photos = photos.filter(p => p.id !== id);
+        localStorage.setItem('photos', JSON.stringify(photos));
+        renderPhotos();
     }
+}
 
-    // Başlangıçta renderları çağırma (InitDB içinde çağrılıyor, burada gerek yok veya await lazım)
-    // initDB() asenkron olduğu için veriler gelmeden renderlar boş çizebilir.
-    // initDB migration bitince zaten renderları çağırıyor.
-    // O yüzden burayı kaldırabiliriz veya güvence olsun diye setTimeout ile bırakabiliriz.
-    // En temizi: initDB'nin onsuccess'i zaten çağıracak. 
-    // renderMemories();
-    // renderPhotos();
-
-    // --- YAPILACAKLAR LİSTESİ (BUCKET LIST) ---
-    const bucketInput = document.getElementById('bucket-input');
-    const addBucketBtn = document.getElementById('add-bucket-btn');
-    const bucketList = document.getElementById('bucket-list');
-    let unsubscribeBucket = null;
-
-    // Event Listener'ı güvenli bir şekilde ekle
-    if (addBucketBtn) {
-        addBucketBtn.addEventListener('click', addBucketItem);
-    }
-
-    async function addBucketItem() {
-        const text = bucketInput.value.trim();
-        if (!text) return;
-
-        const item = {
-            id: Date.now().toString(),
-            text: text,
-            completed: false,
-            timestamp: new Date().toISOString()
-        };
-
-        if (isFirebaseActive) {
-            await db.collection("bucket_list").add(item);
-        } else {
-            try {
-                await dbAdd('bucket_list', item);
-                renderBucketList();
-            } catch (e) {
-                alert("Eklenemedi (Hafıza sorunu olabilir): " + e.message);
-            }
-        }
-        bucketInput.value = '';
-    }
-
-    function renderBucketList() {
-        if (!bucketList) return;
-        bucketList.innerHTML = '';
-
-        if (isFirebaseActive) {
-            if (unsubscribeBucket) unsubscribeBucket();
-
-            unsubscribeBucket = db.collection("bucket_list")
-                .orderBy("timestamp", "desc")
-                .onSnapshot(snapshot => {
-                    bucketList.innerHTML = '';
-                    snapshot.forEach(doc => {
-                        createBucketElement(doc.id, doc.data());
-                    });
-                });
-        } else {
-            // INDEXEDDB OKUMA
-            try {
-                const items = await dbGetAll('bucket_list');
-                // Sıralama (Tamamlananlar altta, yeniler üstte vs.)
-                // Basitçe ekleme sırasına göre veya tersi
-
-                if (items.length === 0) {
-                    // Boş
-                }
-
-                items.forEach(item => createBucketElement(item.id, item));
-            } catch (e) {
-                console.error("Liste yüklenemedi", e);
-            }
-        }
-    }
-
-    function createBucketElement(id, data) {
-        const item = document.createElement('div');
-        item.className = `bucket-item ${data.completed ? 'completed' : ''}`;
-        item.innerHTML = `
-        <input type="checkbox" class="bucket-checkbox" ${data.completed ? 'checked' : ''} onchange="toggleBucketItem('${id}', this.checked)">
-        <span class="bucket-text">${data.text}</span>
-        <button class="delete-btn" onclick="deleteBucketItem('${id}')">🗑️</button>
-    `;
-        bucketList.appendChild(item);
-    }
-
-    window.toggleBucketItem = async function (id, isChecked) {
-        if (isChecked) {
-            // KONFETİ PATLAT! 🎉
-            if (typeof confetti === 'function') {
-                confetti({
-                    particleCount: 100,
-                    spread: 70,
-                    origin: { y: 0.6 }
-                });
-            }
-        }
-
-        if (isFirebaseActive) {
-            await db.collection("bucket_list").doc(id).update({ completed: isChecked });
-        } else {
-            try {
-                // Önce öğeyi bulmak lazım ama idb'de update için nesnenin tamamı lazım
-                // Bu yüzden önce get yapıp sonra put yapabiliriz, ya da sadece dbUpdate ile tüm nesneyi yollarız
-                // Ancak elimizde tüm nesne yok, sadece ID var.
-                // Basit çözüm: Tüm listeyi çekip bulmak (performanssız ama çalışır)
-                // Daha iyi çözüm: get(id) -> update -> put
-
-                // Transaction ile yapalım
-                const tx = idb.transaction('bucket_list', 'readwrite');
-                const store = tx.objectStore('bucket_list');
-                const req = store.get(id);
-
-                req.onsuccess = () => {
-                    const item = req.result;
-                    if (item) {
-                        item.completed = isChecked;
-                        store.put(item);
-                        renderBucketList(); // UI güncelle
-                    }
-                };
-            } catch (e) {
-                console.error("Güncellenemedi", e);
-            }
-        }
-    };
-
-    window.deleteBucketItem = async function (id) {
-        if (confirm("Bu maddeyi silmek istiyor musun?")) {
-            if (isFirebaseActive) {
-                await db.collection("bucket_list").doc(id).delete();
-            } else {
-                try {
-                    await dbDelete('bucket_list', id);
-                    renderBucketList();
-                } catch (e) {
-                    alert("Silinemedi: " + e.message);
-                }
-            }
-        }
-    };
-
-    // Sayfa geçişlerinde listeyi yükle
-    const observer = new MutationObserver((mutations) => {
-        mutations.forEach((mutation) => {
-            if (mutation.target.id === 'bucket-list-page' &&
-                mutation.target.classList.contains('active-page') &&
-                !mutation.oldValue.includes('active-page')) {
-                renderBucketList();
-            }
-        });
-    });
-
-    const bucketPage = document.getElementById('bucket-list-page');
-    if (bucketPage) {
-        observer.observe(bucketPage, { attributes: true, attributeFilter: ['class'], attributeOldValue: true });
-        if (bucketPage.classList.contains('active-page')) renderBucketList();
-    }
+renderMemories();
+renderPhotos();
