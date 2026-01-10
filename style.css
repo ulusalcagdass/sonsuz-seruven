@@ -691,3 +691,96 @@ h2 {
     opacity: 0.9;
     padding-bottom: calc(env(safe-area-inset-bottom) + 20px);
 }
+/* --- SETTINGS PAGE --- */
+.settings-card {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 1.5rem;
+    border-radius: 20px;
+    backdrop-filter: blur(10px);
+    margin-bottom: 2rem;
+    color: #fff;
+}
+
+.settings-card h3 {
+    margin-bottom: 1rem;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.5rem;
+    border-bottom: 1px solid rgba(255,255,255,0.3);
+    padding-bottom: 0.5rem;
+}
+
+.storage-bar-container {
+    width: 100%;
+    height: 20px;
+    background: rgba(0,0,0,0.2);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 10px;
+}
+
+.storage-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #4caf50, #8bc34a);
+    width: 0%;
+    transition: width 0.5s ease;
+}
+
+.storage-bar.high {
+    background: linear-gradient(90deg, #ff9800, #ff5722);
+}
+
+.storage-bar.full {
+    background: linear-gradient(90deg, #f44336, #d32f2f);
+}
+
+.status-text {
+    font-size: 0.9rem;
+    text-align: right;
+    font-family: 'Montserrat', sans-serif;
+}
+
+.data-summary {
+    list-style: none;
+    padding: 0;
+}
+
+.data-summary li {
+    font-size: 1.1rem;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+}
+
+.danger-zone {
+    border: 1px solid rgba(244, 67, 54, 0.5);
+    background: rgba(244, 67, 54, 0.1);
+}
+
+.danger-btn {
+    width: 100%;
+    padding: 12px;
+    background: #f44336;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 1rem;
+    cursor: pointer;
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 600;
+}
+
+.danger-btn:active {
+    transform: scale(0.98);
+}
+
+.danger-btn-outline {
+    width: 100%;
+    padding: 12px;
+    background: transparent;
+    color: #f44336;
+    border: 1px solid #f44336;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    font-family: 'Montserrat', sans-serif;
+}

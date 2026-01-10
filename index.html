@@ -46,6 +46,7 @@
                 <li data-target="journal-page">📖 Anı Defteri</li>
                 <li data-target="album-page">📸 Fotoğraf Albümü</li>
                 <li data-target="bucket-list-page">✨ Yapılacaklar</li>
+                <li data-target="settings-page">⚙️ Ayarlar</li>
             </ul>
         </nav>
 
@@ -153,6 +154,38 @@
                 </div>
                 <div id="bucket-list" class="bucket-list">
                     <!-- Maddeler buraya gelecek -->
+                </div>
+            </section>
+
+            <!-- 5. SETTINGS PAGE -->
+            <section id="settings-page" class="page hidden-page">
+                <h2>Veri Yönetimi & Ayarlar</h2>
+
+                <div class="settings-card">
+                    <h3>💾 Hafıza Durumu</h3>
+                    <div class="storage-bar-container">
+                        <div id="storage-bar" class="storage-bar"></div>
+                    </div>
+                    <p id="storage-text" class="status-text">Hesaplanıyor...</p>
+                </div>
+
+                <div class="settings-card">
+                    <h3>📊 Veri Özeti</h3>
+                    <ul class="data-summary">
+                        <li>📸 Kayıtlı Fotoğraf: <span id="count-photos">0</span></li>
+                        <li>📖 Kayıtlı Anı: <span id="count-memories">0</span></li>
+                        <li>✨ Hedef Maddesi: <span id="count-bucket">0</span></li>
+                    </ul>
+                </div>
+
+                <div class="settings-card danger-zone">
+                    <h3>⚠️ Alan Aç</h3>
+                    <p>Hafıza doluysa fotoğraf yükleyemezsin. Aşağıdaki buton sadece fotoğrafları siler, anıların kalır.
+                    </p>
+                    <button id="clear-photos-btn" class="danger-btn">🗑️ Tüm Fotoğrafları Sil</button>
+                    <br><br>
+                    <p>Uygulamayı sıfırlamak istersen (Her şey silinir):</p>
+                    <button id="reset-app-btn" class="danger-btn-outline">Sıfırla & Başa Dön</button>
                 </div>
             </section>
 

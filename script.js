@@ -666,3 +666,90 @@ if (bucketPage) {
     observer.observe(bucketPage, { attributes: true, attributeFilter: ['class'], attributeOldValue: true });
     if (bucketPage.classList.contains('active-page')) renderBucketList();
 }
+
+// --- VERİ YÖNETİMİ & AYARLAR ---
+const settingsPage = document.getElementById('settings-page');
+const storageBar = document.getElementById('storage-bar');
+const storageText = document.getElementById('storage-text');
+const countPhotos = document.getElementById('count-photos');
+const countMemories = document.getElementById('count-memories');
+const countBucket = document.getElementById('count-bucket');
+const clearPhotosBtn = document.getElementById('clear-photos-btn');
+const resetAppBtn = document.getElementById('reset-app-btn');
+
+function calculateStorage() {
+    let total = 0;
+    for (const key in localStorage) {
+        if (localStorage.hasOwnProperty(key)) {
+            total += ((localStorage[key].length + key.length) * 2);
+        }
+    }
+    // 5MB = 5 * 1024 * 1024 bytes (yaklaşık)
+    // Karakter başına 2 byte (UTF-16)
+    const max = 5 * 1024 * 1024; 
+    const percentage = Math.min((total / max) * 100, 100).toFixed(1);
+    const usedMB = (total / (1024 * 1024)).toFixed(2);
+
+    storageBar.style.width = `${percentage}%`;
+    storageText.textContent = `Kullanılan: ${usedMB} MB / 5.0 MB (%${percentage})`;
+
+    if (percentage > 90) {
+        storageBar.classList.add('full');
+        storageBar.classList.remove('high');
+    } else if (percentage > 70) {
+        storageBar.classList.add('high');
+        storageBar.classList.remove('full');
+    } else {
+        storageBar.classList.remove('high', 'full');
+    }
+}
+
+function updateDataCounts() {
+    const photos = JSON.parse(localStorage.getItem('photos') || '[]');
+    const memories = JSON.parse(localStorage.getItem('memories') || '[]');
+    const bucket = JSON.parse(localStorage.getItem('bucket_list') || '[]');
+
+    countPhotos.textContent = photos.length;
+    countMemories.textContent = memories.length;
+    countBucket.textContent = bucket.length;
+}
+
+// Ayarlar Sayfası Görüntülendiğinde Çalıştır
+const settingsObserver = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+        if (mutation.target.id === 'settings-page' &&
+            mutation.target.classList.contains('active-page')) {
+            calculateStorage();
+            updateDataCounts();
+        }
+    });
+});
+
+if (settingsPage) {
+    settingsObserver.observe(settingsPage, { attributes: true, attributeFilter: ['class'] });
+}
+
+clearPhotosBtn.addEventListener('click', () => {
+    const photoCount = JSON.parse(localStorage.getItem('photos') || '[]').length;
+    if (photoCount === 0) {
+        alert("Silinecek fotoğraf yok.");
+        return;
+    }
+
+    if (confirm(`${photoCount} fotoğrafın tamamı silinecek. Anıların ve listen kalacak. Emin misin?`)) {
+        localStorage.removeItem('photos');
+        alert("Tüm fotoğraflar silindi. Yer açıldı! 🚀");
+        calculateStorage();
+        updateDataCounts();
+        renderPhotos(); // Albümü güncelle (boşalacak)
+    }
+});
+
+resetAppBtn.addEventListener('click', () => {
+    if (confirm("DİKKAT! Tüm anılar, fotoğraflar ve her şey silinecek. Fabrika ayarlarına dönülecek. Emin misin?")) {
+        if (confirm("Son kez soruyorum: Her şey silinsin mi?")) {
+            localStorage.clear();
+            location.reload();
+        }
+    }
+});
