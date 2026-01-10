@@ -139,10 +139,154 @@ try {
         isFirebaseActive = true;
         console.log("Firebase aktif!");
     } else {
-        console.log("Firebase ayarlanmadı, LocalStorage kullanılıyor.");
+        console.log("Firebase ayarlanmadı, IndexedDB kullanılacak.");
+        initDB(); // IndexedDB başlat
     }
 } catch (e) {
     console.error("Firebase başlatma hatası:", e);
+    // Hata olsa bile IndexedDB denenebilir
+    if (!isFirebaseActive) initDB();
+}
+
+// --- INDEXEDDB ALTYAPISI (Hafıza Artırımı İçin) ---
+const DB_NAME = 'AnniversaryAppDB';
+const DB_VERSION = 1;
+let idb;
+
+function initDB() {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+        request.onerror = (event) => {
+            console.error("IndexedDB hatası:", event.target.error);
+            alert("Veritabanı başlatılamadı! Tarayıcınız desteklemiyor olabilir.");
+            reject(event.target.error);
+        };
+
+        request.onsuccess = (event) => {
+            idb = event.target.result;
+            console.log("IndexedDB başarıyla açıldı.");
+            // Veri taşıma işlemini başlat (Migration)
+            migrateFromLocalStorage();
+            resolve(idb);
+        };
+
+        request.onupgradeneeded = (event) => {
+            const db = event.target.result;
+            // Tabloları oluştur (Object Stores)
+            if (!db.objectStoreNames.contains('memories')) {
+                db.createObjectStore('memories', { keyPath: 'id' });
+            }
+            if (!db.objectStoreNames.contains('photos')) {
+                db.createObjectStore('photos', { keyPath: 'id' });
+            }
+            if (!db.objectStoreNames.contains('bucket_list')) {
+                db.createObjectStore('bucket_list', { keyPath: 'id' });
+            }
+            console.log("IndexedDB tabloları oluşturuldu.");
+        };
+    });
+}
+
+// LocalStorage'dan Veri Taşıma (Migration)
+async function migrateFromLocalStorage() {
+    const stores = ['memories', 'photos', 'bucket_list'];
+    let migrationCount = 0;
+
+    for (const storeName of stores) {
+        const rawData = localStorage.getItem(storeName);
+        if (rawData) {
+            try {
+                const data = JSON.parse(rawData);
+                if (Array.isArray(data) && data.length > 0) {
+                    console.log(`${storeName} için ${data.length} veri taşınıyor...`);
+                    const tx = idb.transaction(storeName, 'readwrite');
+                    const store = tx.objectStore(storeName);
+
+                    data.forEach(item => {
+                        // ID kontrolü (yoksa ekle)
+                        if (!item.id) item.id = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+                        store.put(item);
+                    });
+
+                    await new Promise((resolve) => {
+                        tx.oncomplete = () => {
+                            console.log(`${storeName} taşındı.`);
+                            localStorage.removeItem(storeName); // Temizlik
+                            migrationCount++;
+                            resolve();
+                        };
+                        tx.onerror = () => resolve(); // Hata olsa da devam et
+                    });
+                }
+            } catch (e) {
+                console.error("Migration hatası:", e);
+            }
+        }
+    }
+
+    if (migrationCount > 0) {
+        alert("Eski verileriniz başarıyla geniş hafızaya taşındı! 🎉");
+        // Sayfayı yenilemeye gerek yok, veriler idb'de.
+        // Fonksiyonlar render edildiğinde idb'den çekecek.
+        renderMemories();
+        renderPhotos();
+        renderBucketList();
+    } else {
+        // İlk yükleme veya zaten taşınmışsa renderları çağır
+        renderMemories();
+        renderPhotos();
+        renderBucketList();
+    }
+}
+
+// GENEL VERİTABANI FONKSİYONLARI (CRUD)
+function dbAdd(storeName, item) {
+    return new Promise((resolve, reject) => {
+        if (!idb) { reject("Veritabanı hazır değil"); return; }
+        const tx = idb.transaction(storeName, 'readwrite');
+        const store = tx.objectStore(storeName);
+        const request = store.add(item);
+
+        request.onsuccess = () => resolve();
+        request.onerror = (e) => reject(e.target.error);
+    });
+}
+
+function dbGetAll(storeName) {
+    return new Promise((resolve, reject) => {
+        if (!idb) { resolve([]); return; } // DB yoksa boş dön
+        const tx = idb.transaction(storeName, 'readonly');
+        const store = tx.objectStore(storeName);
+        const request = store.getAll();
+
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = (e) => reject(e.target.error);
+    });
+}
+
+function dbDelete(storeName, id) {
+    return new Promise((resolve, reject) => {
+        if (!idb) { reject("DB yok"); return; }
+        const tx = idb.transaction(storeName, 'readwrite');
+        const store = tx.objectStore(storeName);
+        const request = store.delete(id);
+
+        request.onsuccess = () => resolve();
+        request.onerror = (e) => reject(e.target.error);
+    });
+}
+
+function dbUpdate(storeName, item) {
+    return new Promise((resolve, reject) => {
+        if (!idb) { reject("DB yok"); return; }
+        const tx = idb.transaction(storeName, 'readwrite');
+        const store = tx.objectStore(storeName);
+        const request = store.put(item); // put = güncelle veya ekle
+
+        request.onsuccess = () => resolve();
+        request.onerror = (e) => reject(e.target.error);
+    });
 }
 
 // --- MENÜ VE NAVİGASYON ---
@@ -239,25 +383,32 @@ addNoteBtn.addEventListener('click', async () => {
         return;
     }
 
-    const memory = { date, location, note, timestamp: new Date().toISOString() };
+    const memory = {
+        id: Date.now().toString() + Math.random().toString(36).substr(2, 5), // Benzersiz ID
+        date,
+        location,
+        note,
+        timestamp: new Date().toISOString()
+    };
 
-    if (isFirebaseActive) {
-        try {
+    try {
+        if (isFirebaseActive) {
             await db.collection("memories").add(memory);
-            alert("Anı başarıyla kaydedildi!");
-        } catch (error) {
-            alert("Kaydedilirken hata oluştu.");
+        } else {
+            await dbAdd('memories', memory);
         }
-    } else {
-        const memories = JSON.parse(localStorage.getItem('memories') || '[]');
-        memory.id = Date.now().toString();
-        memories.push(memory);
-        localStorage.setItem('memories', JSON.stringify(memories));
-        renderMemories();
-        alert("Anı telefona kaydedildi!");
+        alert("Anı başarıyla kaydedildi!");
+        journalLocation.value = '';
+        journalNote.value = '';
+        if (!isFirebaseActive) renderMemories();
+    } catch (error) {
+        console.error("Anı kaydetme hatası:", error);
+        if (error.name === 'QuotaExceededError') {
+            alert("Hafıza TAMAMEN dolu! Lütfen cihazınızda yer açın.");
+        } else {
+            alert("Kaydedilemedi: " + error.message);
+        }
     }
-    journalLocation.value = '';
-    journalNote.value = '';
 });
 
 function formatDateManual(dateStr) {
@@ -276,58 +427,49 @@ function formatDateManual(dateStr) {
 
 let unsubscribeJournal = null; // Dinleyiciyi durdurmak için
 
-function renderMemories() {
+async function renderMemories() {
     journalList.innerHTML = '';
     const selectedDate = journalDate.value;
 
     if (isFirebaseActive) {
-        // Önceki dinleyiciyi temizle (varsa)
-        if (unsubscribeJournal) {
-            unsubscribeJournal();
-        }
+        // ... (Firebase kodları aynı kalır) ...
+        // Önceki dinleyiciyi temizle
+        if (unsubscribeJournal) unsubscribeJournal();
 
         let query = db.collection("memories");
-
-        // Eğer tarih seçiliyse, o tarihe göre filtrele
-        if (selectedDate) {
-            query = query.where("date", "==", selectedDate);
-        }
-
-        // Sıralama: Tarih seçiliyse timestamp'e göre, değilse tarihe göre
-        // Not: Firestore'da 'where' ve 'orderBy' farklı alanlardaysa index gerekir.
-        // Basitlik için: Tarih seçiliyse client-side sıralama veya sadece eklenme sırası yeterli.
-        // Karmaşıklığı önlemek için sadece filtreliyoruz, sıralamayı client'ta yapabiliriz veya index hatası almamak için orderBy'ı kaldırabiliriz.
+        if (selectedDate) query = query.where("date", "==", selectedDate);
 
         unsubscribeJournal = query.onSnapshot(snapshot => {
             journalList.innerHTML = '';
             const memories = [];
-            snapshot.forEach(doc => {
-                memories.push({ id: doc.id, ...doc.data() });
-            });
-
-            // Client-side sıralama (En yeni en üstte)
+            snapshot.forEach(doc => { memories.push({ id: doc.id, ...doc.data() }); });
             memories.sort((a, b) => (b.timestamp || '').localeCompare(a.timestamp || ''));
+            if (memories.length === 0) {
+                journalList.innerHTML = '<div class="empty-state">Bu tarihte anı yok.</div>';
+                return;
+            }
+            memories.forEach(memory => createMemoryCard(memory, memory.id));
+        });
+
+    } else {
+        // INDEXEDDB OKUMA
+        try {
+            let memories = await dbGetAll('memories');
+
+            if (selectedDate) {
+                memories = memories.filter(m => m.date === selectedDate);
+            }
+            // Tarihe göre sıralama (Yeniden eskiye)
+            memories.sort((a, b) => b.date.localeCompare(a.date));
 
             if (memories.length === 0) {
                 journalList.innerHTML = '<div class="empty-state">Bu tarihte anı yok.</div>';
                 return;
             }
-
             memories.forEach(memory => createMemoryCard(memory, memory.id));
-        });
-
-    } else {
-        let memories = JSON.parse(localStorage.getItem('memories') || '[]');
-        if (selectedDate) {
-            memories = memories.filter(m => m.date === selectedDate);
+        } catch (e) {
+            console.error("Anılar yüklenemedi:", e);
         }
-        memories.sort((a, b) => b.date.localeCompare(a.date));
-
-        if (memories.length === 0) {
-            journalList.innerHTML = '<div class="empty-state">Bu tarihte anı yok.</div>';
-            return;
-        }
-        memories.forEach(memory => createMemoryCard(memory, memory.id));
     }
 }
 
@@ -353,10 +495,12 @@ window.deleteMemory = async function (id) {
         if (isFirebaseActive) {
             await db.collection("memories").doc(id).delete();
         } else {
-            let memories = JSON.parse(localStorage.getItem('memories') || '[]');
-            memories = memories.filter(m => m.id !== id);
-            localStorage.setItem('memories', JSON.stringify(memories));
-            renderMemories();
+            try {
+                await dbDelete('memories', id);
+                renderMemories();
+            } catch (e) {
+                alert("Silinemedi: " + e.message);
+            }
         }
     }
 };
@@ -442,15 +586,21 @@ photoUpload.addEventListener('change', async (e) => {
             showUploadStatus(`${i + 1}/${totalFiles} yükleniyor... (${formattedDate})`);
             const base64Image = await resizeImage(files[i]);
 
+            const photoData = {
+                id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+                url: base64Image,
+                date: uploadDate,
+                timestamp: new Date().toISOString()
+            };
+
             if (isFirebaseActive) {
-                await db.collection("photos").add({ url: base64Image, date: uploadDate, timestamp: new Date().toISOString() });
+                await db.collection("photos").add(photoData);
             } else {
-                const photos = JSON.parse(localStorage.getItem('photos') || '[]');
-                photos.push({ id: Date.now() + Math.random().toString(36), url: base64Image, date: uploadDate });
-                localStorage.setItem('photos', JSON.stringify(photos));
+                await dbAdd('photos', photoData);
             }
         } catch (error) {
-            console.error("Hata:", error);
+            console.error("Fotoğraf yükleme hatası:", error);
+            alert(`Fotoğraf yüklenemedi (${files[i].name}): Hafıza dolu olabilir.`);
         }
     }
     hideUploadStatus();
@@ -489,14 +639,32 @@ function renderPhotos() {
             photos.forEach(photo => createPhotoElement(photo.url, photo.id));
         });
     } else {
-        let photos = JSON.parse(localStorage.getItem('photos') || '[]');
-        if (filterDate) photos = photos.filter(p => p.date === filterDate);
-        if (photos.length === 0) {
-            photoGrid.innerHTML = '<div class="empty-state">Fotoğraf bulunamadı.</div>';
-            return;
+        // INDEXEDDB OKUMA
+        try {
+            let photos = await dbGetAll('photos');
+
+            if (filterDate) {
+                photos = photos.filter(p => p.date === filterDate);
+            }
+
+            if (photos.length === 0) {
+                photoGrid.innerHTML = '<div class="empty-state">Fotoğraf bulunamadı.</div>';
+                return;
+            }
+
+            // Sıralama (Yeniden eskiye) - Timestamp varsa kullan yoksa ters çevir
+            photos.sort((a, b) => {
+                if (a.timestamp && b.timestamp) return b.timestamp.localeCompare(a.timestamp);
+                return 0; // Doğal sıra kalsın, zaten son eklenen en son gelmişti ama dbGetAll sırası garanti değil.
+            });
+            // dbGetAll genellikle keyPath sırasına göre gelir (id). ID timestamp içeriyorsa sıralı olabilir.
+            // Garanti olsun diye reverse ya da sort:
+            photos.reverse();
+
+            photos.forEach(photo => createPhotoElement(photo.url, photo.id));
+        } catch (e) {
+            console.error("Fotoğraflar yüklenemedi:", e);
         }
-        photos.reverse();
-        photos.forEach(photo => createPhotoElement(photo.url, photo.id));
     }
 }
 
@@ -534,128 +702,174 @@ function openLightbox(url, id) {
 async function deletePhoto(id) {
     if (isFirebaseActive) {
         await db.collection("photos").doc(id).delete();
-    } else {
-        let photos = JSON.parse(localStorage.getItem('photos') || '[]');
-        photos = photos.filter(p => p.id !== id);
-        localStorage.setItem('photos', JSON.stringify(photos));
-        renderPhotos();
+        if (isFirebaseActive) {
+            await db.collection("photos").doc(id).delete();
+        } else {
+            try {
+                await dbDelete('photos', id);
+                renderPhotos();
+            } catch (e) {
+                alert("Silinemedi: " + e.message);
+            }
+        }
     }
-}
 
-renderMemories();
-renderPhotos();
+    // Başlangıçta renderları çağırma (InitDB içinde çağrılıyor, burada gerek yok veya await lazım)
+    // initDB() asenkron olduğu için veriler gelmeden renderlar boş çizebilir.
+    // initDB migration bitince zaten renderları çağırıyor.
+    // O yüzden burayı kaldırabiliriz veya güvence olsun diye setTimeout ile bırakabiliriz.
+    // En temizi: initDB'nin onsuccess'i zaten çağıracak. 
+    // renderMemories();
+    // renderPhotos();
 
-// --- YAPILACAKLAR LİSTESİ (BUCKET LIST) ---
-const bucketInput = document.getElementById('bucket-input');
-const addBucketBtn = document.getElementById('add-bucket-btn');
-const bucketList = document.getElementById('bucket-list');
-let unsubscribeBucket = null;
+    // --- YAPILACAKLAR LİSTESİ (BUCKET LIST) ---
+    const bucketInput = document.getElementById('bucket-input');
+    const addBucketBtn = document.getElementById('add-bucket-btn');
+    const bucketList = document.getElementById('bucket-list');
+    let unsubscribeBucket = null;
 
-// Event Listener'ı güvenli bir şekilde ekle
-if (addBucketBtn) {
-    addBucketBtn.addEventListener('click', addBucketItem);
-}
+    // Event Listener'ı güvenli bir şekilde ekle
+    if (addBucketBtn) {
+        addBucketBtn.addEventListener('click', addBucketItem);
+    }
 
-async function addBucketItem() {
-    const text = bucketInput.value.trim();
-    if (!text) return;
+    async function addBucketItem() {
+        const text = bucketInput.value.trim();
+        if (!text) return;
 
-    if (isFirebaseActive) {
-        await db.collection("bucket_list").add({
+        const item = {
+            id: Date.now().toString(),
             text: text,
             completed: false,
             timestamp: new Date().toISOString()
-        });
-    } else {
-        const items = JSON.parse(localStorage.getItem('bucket_list') || '[]');
-        items.push({ id: Date.now().toString(), text: text, completed: false });
-        localStorage.setItem('bucket_list', JSON.stringify(items));
-        renderBucketList();
+        };
+
+        if (isFirebaseActive) {
+            await db.collection("bucket_list").add(item);
+        } else {
+            try {
+                await dbAdd('bucket_list', item);
+                renderBucketList();
+            } catch (e) {
+                alert("Eklenemedi (Hafıza sorunu olabilir): " + e.message);
+            }
+        }
+        bucketInput.value = '';
     }
-    bucketInput.value = '';
-}
 
-function renderBucketList() {
-    if (!bucketList) return;
-    bucketList.innerHTML = '';
+    function renderBucketList() {
+        if (!bucketList) return;
+        bucketList.innerHTML = '';
 
-    if (isFirebaseActive) {
-        if (unsubscribeBucket) unsubscribeBucket();
+        if (isFirebaseActive) {
+            if (unsubscribeBucket) unsubscribeBucket();
 
-        unsubscribeBucket = db.collection("bucket_list")
-            .orderBy("timestamp", "desc")
-            .onSnapshot(snapshot => {
-                bucketList.innerHTML = '';
-                snapshot.forEach(doc => {
-                    createBucketElement(doc.id, doc.data());
+            unsubscribeBucket = db.collection("bucket_list")
+                .orderBy("timestamp", "desc")
+                .onSnapshot(snapshot => {
+                    bucketList.innerHTML = '';
+                    snapshot.forEach(doc => {
+                        createBucketElement(doc.id, doc.data());
+                    });
                 });
-            });
-    } else {
-        const items = JSON.parse(localStorage.getItem('bucket_list') || '[]');
-        items.forEach(item => createBucketElement(item.id, item));
-    }
-}
+        } else {
+            // INDEXEDDB OKUMA
+            try {
+                const items = await dbGetAll('bucket_list');
+                // Sıralama (Tamamlananlar altta, yeniler üstte vs.)
+                // Basitçe ekleme sırasına göre veya tersi
 
-function createBucketElement(id, data) {
-    const item = document.createElement('div');
-    item.className = `bucket-item ${data.completed ? 'completed' : ''}`;
-    item.innerHTML = `
+                if (items.length === 0) {
+                    // Boş
+                }
+
+                items.forEach(item => createBucketElement(item.id, item));
+            } catch (e) {
+                console.error("Liste yüklenemedi", e);
+            }
+        }
+    }
+
+    function createBucketElement(id, data) {
+        const item = document.createElement('div');
+        item.className = `bucket-item ${data.completed ? 'completed' : ''}`;
+        item.innerHTML = `
         <input type="checkbox" class="bucket-checkbox" ${data.completed ? 'checked' : ''} onchange="toggleBucketItem('${id}', this.checked)">
         <span class="bucket-text">${data.text}</span>
         <button class="delete-btn" onclick="deleteBucketItem('${id}')">🗑️</button>
     `;
-    bucketList.appendChild(item);
-}
+        bucketList.appendChild(item);
+    }
 
-window.toggleBucketItem = async function (id, isChecked) {
-    if (isChecked) {
-        // KONFETİ PATLAT! 🎉
-        if (typeof confetti === 'function') {
-            confetti({
-                particleCount: 100,
-                spread: 70,
-                origin: { y: 0.6 }
-            });
+    window.toggleBucketItem = async function (id, isChecked) {
+        if (isChecked) {
+            // KONFETİ PATLAT! 🎉
+            if (typeof confetti === 'function') {
+                confetti({
+                    particleCount: 100,
+                    spread: 70,
+                    origin: { y: 0.6 }
+                });
+            }
         }
-    }
 
-    if (isFirebaseActive) {
-        await db.collection("bucket_list").doc(id).update({ completed: isChecked });
-    } else {
-        const items = JSON.parse(localStorage.getItem('bucket_list') || '[]');
-        const item = items.find(i => i.id === id);
-        if (item) item.completed = isChecked;
-        localStorage.setItem('bucket_list', JSON.stringify(items));
-        renderBucketList();
-    }
-};
-
-window.deleteBucketItem = async function (id) {
-    if (confirm("Bu maddeyi silmek istiyor musun?")) {
         if (isFirebaseActive) {
-            await db.collection("bucket_list").doc(id).delete();
+            await db.collection("bucket_list").doc(id).update({ completed: isChecked });
         } else {
-            let items = JSON.parse(localStorage.getItem('bucket_list') || '[]');
-            items = items.filter(i => i.id !== id);
-            localStorage.setItem('bucket_list', JSON.stringify(items));
-            renderBucketList();
-        }
-    }
-};
+            try {
+                // Önce öğeyi bulmak lazım ama idb'de update için nesnenin tamamı lazım
+                // Bu yüzden önce get yapıp sonra put yapabiliriz, ya da sadece dbUpdate ile tüm nesneyi yollarız
+                // Ancak elimizde tüm nesne yok, sadece ID var.
+                // Basit çözüm: Tüm listeyi çekip bulmak (performanssız ama çalışır)
+                // Daha iyi çözüm: get(id) -> update -> put
 
-// Sayfa geçişlerinde listeyi yükle
-const observer = new MutationObserver((mutations) => {
-    mutations.forEach((mutation) => {
-        if (mutation.target.id === 'bucket-list-page' &&
-            mutation.target.classList.contains('active-page') &&
-            !mutation.oldValue.includes('active-page')) {
-            renderBucketList();
+                // Transaction ile yapalım
+                const tx = idb.transaction('bucket_list', 'readwrite');
+                const store = tx.objectStore('bucket_list');
+                const req = store.get(id);
+
+                req.onsuccess = () => {
+                    const item = req.result;
+                    if (item) {
+                        item.completed = isChecked;
+                        store.put(item);
+                        renderBucketList(); // UI güncelle
+                    }
+                };
+            } catch (e) {
+                console.error("Güncellenemedi", e);
+            }
         }
+    };
+
+    window.deleteBucketItem = async function (id) {
+        if (confirm("Bu maddeyi silmek istiyor musun?")) {
+            if (isFirebaseActive) {
+                await db.collection("bucket_list").doc(id).delete();
+            } else {
+                try {
+                    await dbDelete('bucket_list', id);
+                    renderBucketList();
+                } catch (e) {
+                    alert("Silinemedi: " + e.message);
+                }
+            }
+        }
+    };
+
+    // Sayfa geçişlerinde listeyi yükle
+    const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+            if (mutation.target.id === 'bucket-list-page' &&
+                mutation.target.classList.contains('active-page') &&
+                !mutation.oldValue.includes('active-page')) {
+                renderBucketList();
+            }
+        });
     });
-});
 
-const bucketPage = document.getElementById('bucket-list-page');
-if (bucketPage) {
-    observer.observe(bucketPage, { attributes: true, attributeFilter: ['class'], attributeOldValue: true });
-    if (bucketPage.classList.contains('active-page')) renderBucketList();
-}
+    const bucketPage = document.getElementById('bucket-list-page');
+    if (bucketPage) {
+        observer.observe(bucketPage, { attributes: true, attributeFilter: ['class'], attributeOldValue: true });
+        if (bucketPage.classList.contains('active-page')) renderBucketList();
+    }
