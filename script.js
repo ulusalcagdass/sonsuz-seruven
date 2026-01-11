@@ -119,13 +119,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // --- FIREBASE AYARLARI ---
 const firebaseConfig = {
-    apiKey: "AIzaSyBu2e7VWVv5B7GWNHdHzJQgurY37pJgINg",
-    authDomain: "sonsuzseruven.firebaseapp.com",
-    projectId: "sonsuzseruven",
-    storageBucket: "sonsuzseruven.firebasestorage.app",
-    messagingSenderId: "1030466348280",
-    appId: "1:1030466348280:web:aa2504338f0bfe718e870d",
-    measurementId: "G-JM96LDCRF3"
+    apiKey: "AIzaSyD4ySpAeQtvPQ9PQb830Ie0KPP_ZIYtt2o",
+    authDomain: "beyza-app.firebaseapp.com",
+    projectId: "beyza-app",
+    storageBucket: "beyza-app.firebasestorage.app",
+    messagingSenderId: "456251267418",
+    appId: "1:456251267418:web:fd9e3f0e8df0c68a06fb63"
 };
 
 let db, storage;
@@ -776,12 +775,12 @@ function logToScreen(msg, type = 'info') {
 const originalLog = console.log;
 const originalError = console.error;
 
-console.log = function(...args) {
+console.log = function (...args) {
     originalLog.apply(console, args);
     logToScreen(args.join(' '));
 };
 
-console.error = function(...args) {
+console.error = function (...args) {
     originalError.apply(console, args);
     logToScreen(args.join(' '), 'error');
 };
