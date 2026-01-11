@@ -1,5 +1,5 @@
 // Sabit Başlangıç Tarihi: 30 Kasım 2018
-console.log("APP VERSION: v1010 LOADED");
+console.log("APP VERSION: v1011 LOADED");
 const startDate = new Date('2018-11-30T00:00:00');
 
 // DOM Elementleri
