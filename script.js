@@ -756,3 +756,59 @@ resetAppBtn.addEventListener('click', () => {
         }
     }
 });
+
+// --- DEBUG & LOGGING SYSTEM ---
+const consoleDiv = document.getElementById('console-log');
+const toggleFirebaseBtn = document.getElementById('toggle-firebase-btn');
+
+// Ekrana Log Basma Fonksiyonu
+function logToScreen(msg, type = 'info') {
+    if (!consoleDiv) return;
+    const p = document.createElement('div');
+    p.textContent = `> ${msg}`;
+    p.style.color = type === 'error' ? '#ff5555' : '#55ff55';
+    p.style.marginBottom = '5px';
+    p.style.borderBottom = '1px solid #333';
+    consoleDiv.prepend(p); // En yeniyi en üste ekle
+}
+
+// Orijinal konsolu koruyarak ekrana da bas
+const originalLog = console.log;
+const originalError = console.error;
+
+console.log = function(...args) {
+    originalLog.apply(console, args);
+    logToScreen(args.join(' '));
+};
+
+console.error = function(...args) {
+    originalError.apply(console, args);
+    logToScreen(args.join(' '), 'error');
+};
+
+console.log("Debug sistemi aktif edildi.");
+console.log("Firebase Veri Tabanı: " + (isFirebaseActive ? "AKTİF ✅" : "PASİF ❌ (Yerel Hafıza)"));
+
+// Firebase Toggle
+if (toggleFirebaseBtn) {
+    toggleFirebaseBtn.textContent = isFirebaseActive ? "Firebase: AÇIK (Kapatmak için tıkla)" : "Firebase: KAPALI (Yerel Mod)";
+    toggleFirebaseBtn.addEventListener('click', () => {
+        isFirebaseActive = !isFirebaseActive;
+        console.log("Firebase durumu değiştirildi: " + (isFirebaseActive ? "AÇIK" : "KAPALI"));
+        toggleFirebaseBtn.textContent = isFirebaseActive ? "Firebase: AÇIK (Kapatmak için tıkla)" : "Firebase: KAPALI (Yerel Mod)";
+        alert("Mod değiştirildi: " + (isFirebaseActive ? "Bulut (Firebase)" : "Yerel (Telefon)"));
+    });
+}
+
+// Butonlara Log Ekleme (Hata İzleme İçin)
+if (addNoteBtn) {
+    addNoteBtn.addEventListener('click', () => {
+        console.log("Anı Kaydet butonuna basıldı.");
+    });
+}
+
+if (photoUpload) {
+    photoUpload.addEventListener('click', () => {
+        console.log("Fotoğraf yükleme seçimi açıldı.");
+    });
+}
