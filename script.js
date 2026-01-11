@@ -443,53 +443,56 @@ photoUpload.addEventListener('change', async (e) => {
     // Kullanıcıya hangi tarihe yüklendiğini gösterelim
     const dateParts = uploadDate.split('-');
     const formattedDate = `${dateParts[2]}.${dateParts[1]}.${dateParts[0]}`;
-    showUploadStatus(`${formattedDate} tarihine ${totalFiles} fotoğraf yükleniyor...`);
+    showUploadStatus(`${formattedDate} tarihine ${totalFiles} dosya yükleniyor...`);
 
     for (let i = 0; i < totalFiles; i++) {
-        // Video ise küçültme yapmadan direkt oku (Boyut kontrolü eklenebilir)
-        if (file.size > 15 * 1024 * 1024) { // 15MB Limit
-            alert(`Video çok büyük (${(file.size / 1024 / 1024).toFixed(1)}MB). Max 15MB yükleyebilirsin.`);
-            continue;
-        }
-        contentBase64 = await readFileAsDataURL(file);
-        fileType = 'video';
-    } else {
-        // Fotoğraf ise küçült
-        contentBase64 = await resizeImage(file);
-        fileType = 'image';
-    }
-
-    const mediaItem = {
-        url: contentBase64,
-        date: uploadDate,
-        timestamp: new Date().toISOString(),
-        type: fileType
-    };
-
-    if (isFirebaseActive) {
-        await db.collection("photos").add(mediaItem);
-    } else {
         try {
-            const photos = JSON.parse(localStorage.getItem('photos') || '[]');
-            // ID ekleyelim
-            mediaItem.id = Date.now() + Math.random().toString(36);
-            photos.push(mediaItem);
-            localStorage.setItem('photos', JSON.stringify(photos));
+            showUploadStatus(`${i + 1}/${totalFiles} yükleniyor... (${formattedDate})`);
+
+            const file = files[i];
+            const isVideo = file.type.startsWith('video/');
+            let contentBase64;
+            let fileType = 'image';
+
+            if (isVideo) {
+                // Video ise küçültme yapmadan direkt oku (Boyut kontrolü eklenebilir)
+                if (file.size > 15 * 1024 * 1024) { // 15MB Limit
+                    alert(`Video çok büyük (${(file.size / 1024 / 1024).toFixed(1)}MB). Max 15MB yükleyebilirsin.`);
+                    continue;
+                }
+                contentBase64 = await readFileAsDataURL(file);
+                fileType = 'video';
+            } else {
+                // Fotoğraf ise küçült
+                contentBase64 = await resizeImage(file);
+                fileType = 'image';
+            }
+
+            const mediaItem = {
+                url: contentBase64,
+                date: uploadDate,
+                timestamp: new Date().toISOString(),
+                type: fileType
+            };
+
+            if (isFirebaseActive) {
+                await db.collection("photos").add(mediaItem);
+            } else {
+                const photos = JSON.parse(localStorage.getItem('photos') || '[]');
+                mediaItem.id = Date.now() + Math.random().toString(36);
+                photos.push(mediaItem);
+                localStorage.setItem('photos', JSON.stringify(photos));
+            }
         } catch (error) {
-            hideUploadStatus();
-            console.error("LocalStorage hatası:", error);
-            alert("KAYIT HATASI: " + error.name + "\nDetay: " + error.message);
-            return;
+            console.error("Yükleme hatası:", error);
+            // Bir dosya hatalıysa diğerine geç
         }
     }
-} catch (error) {
-    console.error("Hata:", error);
-}
-}
-hideUploadStatus();
-if (!isFirebaseActive) renderPhotos();
-showUploadStatus("Tamamlandı! ✅");
-setTimeout(hideUploadStatus, 2000);
+
+    hideUploadStatus();
+    if (!isFirebaseActive) renderPhotos();
+    showUploadStatus("Tamamlandı! ✅");
+    setTimeout(hideUploadStatus, 2000);
 });
 
 function renderPhotos() {
@@ -508,7 +511,8 @@ function renderPhotos() {
             photoGrid.innerHTML = '';
             const photos = [];
             snapshot.forEach(doc => {
-                photos.push({ id: doc.id, ...doc.data() });
+                const data = doc.data();
+                photos.push({ id: doc.id, url: data.url, date: data.date, type: data.type, timestamp: data.timestamp });
             });
 
             // Client-side sıralama
@@ -519,7 +523,7 @@ function renderPhotos() {
                 return;
             }
 
-            photos.forEach(photo => createPhotoElement(photo.url, photo.id));
+            photos.forEach(photo => createPhotoElement(photo.url, photo.id, photo.type));
         });
     } else {
         let photos = JSON.parse(localStorage.getItem('photos') || '[]');
@@ -528,8 +532,8 @@ function renderPhotos() {
             photoGrid.innerHTML = '<div class="empty-state">Fotoğraf bulunamadı.</div>';
             return;
         }
-        photos.reverse();
-        photos.forEach(photo => createPhotoElement(photo.url, photo.id));
+        photos.reverse(); // En yeniden eskiye
+        photos.forEach(photo => createPhotoElement(photo.url, photo.id, photo.type));
     }
 }
 
@@ -550,15 +554,33 @@ function createPhotoElement(url, id, type) {
         video.style.borderRadius = '15px'; // CSS uyumu
         item.appendChild(video);
 
-        // Videoya tıklanınca lightbox açılmasın, kendi oynatıcısını kullansın
-        // Ama silme butonu eklememiz lazım, bu tasarımda zor olabilir.
-        // Şimdilik lightbox'a yönlendirelim, orada silsin.
-        item.addEventListener('click', (e) => {
-            // Video kontrollerine basınca açılmaması için
-            if (e.target.tagName !== 'VIDEO') {
-                openLightbox(url, id, 'video');
-            }
-        });
+        // Videoya tıklanınca lightbox açılmasın, kendi oynatıcısını kullansın diye
+        // event listener'ı sadece container'a değil, belki overlay'e koyabilirdik.
+        // Ama şimdilik basit tutalım: Video üzerine tıklayınca video oynar.
+        // Silme işlemi için uzun basma veya kenarda buton gerekebilir.
+
+        // Geçici çözüm: Video oynarken üzerine çift tık veya lightbox butonu?
+        // Bizim tasarımda delete sadece lightbox içinde var.
+        // O yüzden lightbox'ı açtırmamız lazım bir şekilde.
+        // Video kontrolleri (play/pause) ile çakışmaması için:
+
+        const deleteOverlay = document.createElement('div');
+        deleteOverlay.innerHTML = '🔍 Büyüt / Sil';
+        deleteOverlay.style.position = 'absolute';
+        deleteOverlay.style.bottom = '5px';
+        deleteOverlay.style.right = '5px';
+        deleteOverlay.style.background = 'rgba(0,0,0,0.5)';
+        deleteOverlay.style.color = '#fff';
+        deleteOverlay.style.padding = '5px 10px';
+        deleteOverlay.style.borderRadius = '10px';
+        deleteOverlay.style.fontSize = '12px';
+        deleteOverlay.style.cursor = 'pointer';
+        deleteOverlay.onclick = (e) => {
+            e.stopPropagation();
+            openLightbox(url, id, 'video');
+        };
+        item.appendChild(deleteOverlay);
+
     } else {
         item.style.backgroundImage = `url(${url})`;
         item.addEventListener('click', () => { openLightbox(url, id, 'image'); });
@@ -571,7 +593,6 @@ let currentPhotoId = null;
 function openLightbox(url, id, type) {
     lightbox.style.display = "block";
 
-    // Video ise img tagini gizle video koy, resimse tam tersi
     let videoEl = document.getElementById('lightbox-video');
     if (!videoEl) {
         videoEl = document.createElement('video');
@@ -580,17 +601,18 @@ function openLightbox(url, id, type) {
         videoEl.style.maxWidth = '90%';
         videoEl.style.maxHeight = '80vh';
         videoEl.style.display = 'none';
-        // lightboxImg'in yanına ekle (veya yerine)
+        videoEl.style.margin = '0 auto';
+        // lightboxImg'in yanına ekle
         lightbox.insertBefore(videoEl, lightboxImg);
     }
 
-    if (type === 'video' || url.startsWith('data:video')) {
+    if (type === 'video' || (url && url.startsWith('data:video'))) {
         lightboxImg.style.display = 'none';
         videoEl.style.display = 'block';
         videoEl.src = url;
     } else {
         videoEl.style.display = 'none';
-        videoEl.pause(); // Varsa önceki videoyu durdur
+        videoEl.pause();
         lightboxImg.style.display = 'block';
         lightboxImg.src = url;
     }
