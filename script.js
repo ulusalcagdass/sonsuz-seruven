@@ -495,281 +495,282 @@ if (photoUpload) {
         showUploadStatus("Tamamlandı! ✅");
         setTimeout(hideUploadStatus, 2000);
     });
+}
 
-    function renderPhotos() {
-        photoGrid.innerHTML = '';
-        const filterDate = photoFilterDate.value;
+function renderPhotos() {
+    photoGrid.innerHTML = '';
+    const filterDate = photoFilterDate.value;
 
-        if (isFirebaseActive) {
-            if (unsubscribePhotos) unsubscribePhotos();
+    if (isFirebaseActive) {
+        if (unsubscribePhotos) unsubscribePhotos();
 
-            let query = db.collection("photos");
-            if (filterDate) {
-                query = query.where("date", "==", filterDate);
-            }
+        let query = db.collection("photos");
+        if (filterDate) {
+            query = query.where("date", "==", filterDate);
+        }
 
-            unsubscribePhotos = query.onSnapshot(snapshot => {
-                photoGrid.innerHTML = '';
-                const photos = [];
-                snapshot.forEach(doc => {
-                    const data = doc.data();
-                    photos.push({ id: doc.id, url: data.url, date: data.date, type: data.type, timestamp: data.timestamp });
-                });
-
-                // Client-side sıralama
-                photos.sort((a, b) => (b.timestamp || '').localeCompare(a.timestamp || ''));
-
-                if (photos.length === 0) {
-                    photoGrid.innerHTML = '<div class="empty-state">Fotoğraf bulunamadı.</div>';
-                    return;
-                }
-
-                photos.forEach(photo => createPhotoElement(photo.url, photo.id, photo.type));
+        unsubscribePhotos = query.onSnapshot(snapshot => {
+            photoGrid.innerHTML = '';
+            const photos = [];
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                photos.push({ id: doc.id, url: data.url, date: data.date, type: data.type, timestamp: data.timestamp });
             });
-        } else {
-            let photos = JSON.parse(localStorage.getItem('photos') || '[]');
-            if (filterDate) photos = photos.filter(p => p.date === filterDate);
+
+            // Client-side sıralama
+            photos.sort((a, b) => (b.timestamp || '').localeCompare(a.timestamp || ''));
+
             if (photos.length === 0) {
                 photoGrid.innerHTML = '<div class="empty-state">Fotoğraf bulunamadı.</div>';
                 return;
             }
-            photos.reverse(); // En yeniden eskiye
+
             photos.forEach(photo => createPhotoElement(photo.url, photo.id, photo.type));
+        });
+    } else {
+        let photos = JSON.parse(localStorage.getItem('photos') || '[]');
+        if (filterDate) photos = photos.filter(p => p.date === filterDate);
+        if (photos.length === 0) {
+            photoGrid.innerHTML = '<div class="empty-state">Fotoğraf bulunamadı.</div>';
+            return;
         }
+        photos.reverse(); // En yeniden eskiye
+        photos.forEach(photo => createPhotoElement(photo.url, photo.id, photo.type));
     }
+}
 
-    function createPhotoElement(url, id, type) {
-        const item = document.createElement('div');
-        item.className = 'photo-item fade-in';
+function createPhotoElement(url, id, type) {
+    const item = document.createElement('div');
+    item.className = 'photo-item fade-in';
 
-        // Türü belirle (Eski verilerde type olmayabilir, URL'den tahmin et veya image varsay)
-        const isVideo = type === 'video' || (url && url.startsWith('data:video'));
+    // Türü belirle (Eski verilerde type olmayabilir, URL'den tahmin et veya image varsay)
+    const isVideo = type === 'video' || (url && url.startsWith('data:video'));
 
-        if (isVideo) {
-            const video = document.createElement('video');
-            video.src = url;
-            video.controls = true;
-            video.style.width = '100%';
-            video.style.height = '100%';
-            video.style.objectFit = 'cover';
-            video.style.borderRadius = '15px'; // CSS uyumu
-            item.appendChild(video);
+    if (isVideo) {
+        const video = document.createElement('video');
+        video.src = url;
+        video.controls = true;
+        video.style.width = '100%';
+        video.style.height = '100%';
+        video.style.objectFit = 'cover';
+        video.style.borderRadius = '15px'; // CSS uyumu
+        item.appendChild(video);
 
-            // Videoya tıklanınca lightbox açılmasın, kendi oynatıcısını kullansın diye
-            // event listener'ı sadece container'a değil, belki overlay'e koyabilirdik.
-            // Ama şimdilik basit tutalım: Video üzerine tıklayınca video oynar.
-            // Silme işlemi için uzun basma veya kenarda buton gerekebilir.
+        // Videoya tıklanınca lightbox açılmasın, kendi oynatıcısını kullansın diye
+        // event listener'ı sadece container'a değil, belki overlay'e koyabilirdik.
+        // Ama şimdilik basit tutalım: Video üzerine tıklayınca video oynar.
+        // Silme işlemi için uzun basma veya kenarda buton gerekebilir.
 
-            // Geçici çözüm: Video oynarken üzerine çift tık veya lightbox butonu?
-            // Bizim tasarımda delete sadece lightbox içinde var.
-            // O yüzden lightbox'ı açtırmamız lazım bir şekilde.
-            // Video kontrolleri (play/pause) ile çakışmaması için:
+        // Geçici çözüm: Video oynarken üzerine çift tık veya lightbox butonu?
+        // Bizim tasarımda delete sadece lightbox içinde var.
+        // O yüzden lightbox'ı açtırmamız lazım bir şekilde.
+        // Video kontrolleri (play/pause) ile çakışmaması için:
 
-            const deleteOverlay = document.createElement('div');
-            deleteOverlay.innerHTML = '🔍 Büyüt / Sil';
-            deleteOverlay.style.position = 'absolute';
-            deleteOverlay.style.bottom = '5px';
-            deleteOverlay.style.right = '5px';
-            deleteOverlay.style.background = 'rgba(0,0,0,0.5)';
-            deleteOverlay.style.color = '#fff';
-            deleteOverlay.style.padding = '5px 10px';
-            deleteOverlay.style.borderRadius = '10px';
-            deleteOverlay.style.fontSize = '12px';
-            deleteOverlay.style.cursor = 'pointer';
-            deleteOverlay.onclick = (e) => {
-                e.stopPropagation();
-                openLightbox(url, id, 'video');
-            };
-            item.appendChild(deleteOverlay);
-
-        } else {
-            item.style.backgroundImage = `url(${url})`;
-            item.addEventListener('click', () => { openLightbox(url, id, 'image'); });
-        }
-
-        photoGrid.appendChild(item);
-    }
-
-    let currentPhotoId = null;
-    function openLightbox(url, id, type) {
-        lightbox.style.display = "block";
-
-        let videoEl = document.getElementById('lightbox-video');
-        if (!videoEl) {
-            videoEl = document.createElement('video');
-            videoEl.id = 'lightbox-video';
-            videoEl.controls = true;
-            videoEl.style.maxWidth = '90%';
-            videoEl.style.maxHeight = '80vh';
-            videoEl.style.display = 'none';
-            videoEl.style.margin = '0 auto';
-            // lightboxImg'in yanına ekle
-            lightbox.insertBefore(videoEl, lightboxImg);
-        }
-
-        if (type === 'video' || (url && url.startsWith('data:video'))) {
-            lightboxImg.style.display = 'none';
-            videoEl.style.display = 'block';
-            videoEl.src = url;
-        } else {
-            videoEl.style.display = 'none';
-            videoEl.pause();
-            lightboxImg.style.display = 'block';
-            lightboxImg.src = url;
-        }
-
-        currentPhotoId = id;
-
-        const oldBtn = document.getElementById('lightbox-delete-btn');
-        if (oldBtn) oldBtn.remove();
-
-        const deleteBtn = document.createElement('button');
-        deleteBtn.id = 'lightbox-delete-btn';
-        deleteBtn.className = 'lightbox-delete-btn';
-        deleteBtn.innerHTML = '🗑️ Sil';
-        deleteBtn.onclick = async (e) => {
+        const deleteOverlay = document.createElement('div');
+        deleteOverlay.innerHTML = '🔍 Büyüt / Sil';
+        deleteOverlay.style.position = 'absolute';
+        deleteOverlay.style.bottom = '5px';
+        deleteOverlay.style.right = '5px';
+        deleteOverlay.style.background = 'rgba(0,0,0,0.5)';
+        deleteOverlay.style.color = '#fff';
+        deleteOverlay.style.padding = '5px 10px';
+        deleteOverlay.style.borderRadius = '10px';
+        deleteOverlay.style.fontSize = '12px';
+        deleteOverlay.style.cursor = 'pointer';
+        deleteOverlay.onclick = (e) => {
             e.stopPropagation();
-            if (confirm("Bu fotoğrafı silmek istediğine emin misin?")) {
-                await deletePhoto(currentPhotoId);
-                lightbox.style.display = "none";
-            }
+            openLightbox(url, id, 'video');
         };
-        lightbox.appendChild(deleteBtn);
+        item.appendChild(deleteOverlay);
+
+    } else {
+        item.style.backgroundImage = `url(${url})`;
+        item.addEventListener('click', () => { openLightbox(url, id, 'image'); });
     }
 
-    async function deletePhoto(id) {
-        if (isFirebaseActive) {
-            await db.collection("photos").doc(id).delete();
-        } else {
-            let photos = JSON.parse(localStorage.getItem('photos') || '[]');
-            photos = photos.filter(p => p.id !== id);
-            localStorage.setItem('photos', JSON.stringify(photos));
-            renderPhotos();
+    photoGrid.appendChild(item);
+}
+
+let currentPhotoId = null;
+function openLightbox(url, id, type) {
+    lightbox.style.display = "block";
+
+    let videoEl = document.getElementById('lightbox-video');
+    if (!videoEl) {
+        videoEl = document.createElement('video');
+        videoEl.id = 'lightbox-video';
+        videoEl.controls = true;
+        videoEl.style.maxWidth = '90%';
+        videoEl.style.maxHeight = '80vh';
+        videoEl.style.display = 'none';
+        videoEl.style.margin = '0 auto';
+        // lightboxImg'in yanına ekle
+        lightbox.insertBefore(videoEl, lightboxImg);
+    }
+
+    if (type === 'video' || (url && url.startsWith('data:video'))) {
+        lightboxImg.style.display = 'none';
+        videoEl.style.display = 'block';
+        videoEl.src = url;
+    } else {
+        videoEl.style.display = 'none';
+        videoEl.pause();
+        lightboxImg.style.display = 'block';
+        lightboxImg.src = url;
+    }
+
+    currentPhotoId = id;
+
+    const oldBtn = document.getElementById('lightbox-delete-btn');
+    if (oldBtn) oldBtn.remove();
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.id = 'lightbox-delete-btn';
+    deleteBtn.className = 'lightbox-delete-btn';
+    deleteBtn.innerHTML = '🗑️ Sil';
+    deleteBtn.onclick = async (e) => {
+        e.stopPropagation();
+        if (confirm("Bu fotoğrafı silmek istediğine emin misin?")) {
+            await deletePhoto(currentPhotoId);
+            lightbox.style.display = "none";
         }
+    };
+    lightbox.appendChild(deleteBtn);
+}
+
+async function deletePhoto(id) {
+    if (isFirebaseActive) {
+        await db.collection("photos").doc(id).delete();
+    } else {
+        let photos = JSON.parse(localStorage.getItem('photos') || '[]');
+        photos = photos.filter(p => p.id !== id);
+        localStorage.setItem('photos', JSON.stringify(photos));
+        renderPhotos();
     }
+}
 
-    renderMemories();
-    renderPhotos();
+renderMemories();
+renderPhotos();
 
-    // --- YAPILACAKLAR LİSTESİ (BUCKET LIST) ---
-    const bucketInput = document.getElementById('bucket-input');
-    const addBucketBtn = document.getElementById('add-bucket-btn');
-    const bucketList = document.getElementById('bucket-list');
-    let unsubscribeBucket = null;
+// --- YAPILACAKLAR LİSTESİ (BUCKET LIST) ---
+const bucketInput = document.getElementById('bucket-input');
+const addBucketBtn = document.getElementById('add-bucket-btn');
+const bucketList = document.getElementById('bucket-list');
+let unsubscribeBucket = null;
 
-    // Event Listener'ı güvenli bir şekilde ekle
-    if (addBucketBtn) {
-        addBucketBtn.addEventListener('click', addBucketItem);
-    }
+// Event Listener'ı güvenli bir şekilde ekle
+if (addBucketBtn) {
+    addBucketBtn.addEventListener('click', addBucketItem);
+}
 
-    async function addBucketItem() {
-        const text = bucketInput.value.trim();
-        if (!text) return;
+async function addBucketItem() {
+    const text = bucketInput.value.trim();
+    if (!text) return;
 
-        if (isFirebaseActive) {
-            await db.collection("bucket_list").add({
-                text: text,
-                completed: false,
-                timestamp: new Date().toISOString()
-            });
-        } else {
-            try {
-                const items = JSON.parse(localStorage.getItem('bucket_list') || '[]');
-                items.push({ id: Date.now().toString(), text: text, completed: false });
-                localStorage.setItem('bucket_list', JSON.stringify(items));
-                renderBucketList();
-            } catch (error) {
-                console.error("LocalStorage hatası:", error);
-                alert("KAYIT HATASI: " + error.name + "\nDetay: " + error.message);
-            }
-        }
-        bucketInput.value = '';
-    }
-
-    function renderBucketList() {
-        if (!bucketList) return;
-        bucketList.innerHTML = '';
-
-        if (isFirebaseActive) {
-            if (unsubscribeBucket) unsubscribeBucket();
-
-            unsubscribeBucket = db.collection("bucket_list")
-                .orderBy("timestamp", "desc")
-                .onSnapshot(snapshot => {
-                    bucketList.innerHTML = '';
-                    snapshot.forEach(doc => {
-                        createBucketElement(doc.id, doc.data());
-                    });
-                });
-        } else {
+    if (isFirebaseActive) {
+        await db.collection("bucket_list").add({
+            text: text,
+            completed: false,
+            timestamp: new Date().toISOString()
+        });
+    } else {
+        try {
             const items = JSON.parse(localStorage.getItem('bucket_list') || '[]');
-            items.forEach(item => createBucketElement(item.id, item));
+            items.push({ id: Date.now().toString(), text: text, completed: false });
+            localStorage.setItem('bucket_list', JSON.stringify(items));
+            renderBucketList();
+        } catch (error) {
+            console.error("LocalStorage hatası:", error);
+            alert("KAYIT HATASI: " + error.name + "\nDetay: " + error.message);
         }
     }
+    bucketInput.value = '';
+}
 
-    function createBucketElement(id, data) {
-        const item = document.createElement('div');
-        item.className = `bucket-item ${data.completed ? 'completed' : ''}`;
-        item.innerHTML = `
+function renderBucketList() {
+    if (!bucketList) return;
+    bucketList.innerHTML = '';
+
+    if (isFirebaseActive) {
+        if (unsubscribeBucket) unsubscribeBucket();
+
+        unsubscribeBucket = db.collection("bucket_list")
+            .orderBy("timestamp", "desc")
+            .onSnapshot(snapshot => {
+                bucketList.innerHTML = '';
+                snapshot.forEach(doc => {
+                    createBucketElement(doc.id, doc.data());
+                });
+            });
+    } else {
+        const items = JSON.parse(localStorage.getItem('bucket_list') || '[]');
+        items.forEach(item => createBucketElement(item.id, item));
+    }
+}
+
+function createBucketElement(id, data) {
+    const item = document.createElement('div');
+    item.className = `bucket-item ${data.completed ? 'completed' : ''}`;
+    item.innerHTML = `
         <input type="checkbox" class="bucket-checkbox" ${data.completed ? 'checked' : ''} onchange="toggleBucketItem('${id}', this.checked)">
         <span class="bucket-text">${data.text}</span>
         <button class="delete-btn" onclick="deleteBucketItem('${id}')">🗑️</button>
     `;
-        bucketList.appendChild(item);
+    bucketList.appendChild(item);
+}
+
+window.toggleBucketItem = async function (id, isChecked) {
+    if (isChecked) {
+        // KONFETİ PATLAT! 🎉
+        if (typeof confetti === 'function') {
+            confetti({
+                particleCount: 100,
+                spread: 70,
+                origin: { y: 0.6 }
+            });
+        }
     }
 
-    window.toggleBucketItem = async function (id, isChecked) {
-        if (isChecked) {
-            // KONFETİ PATLAT! 🎉
-            if (typeof confetti === 'function') {
-                confetti({
-                    particleCount: 100,
-                    spread: 70,
-                    origin: { y: 0.6 }
-                });
-            }
-        }
+    if (isFirebaseActive) {
+        await db.collection("bucket_list").doc(id).update({ completed: isChecked });
+    } else {
+        const items = JSON.parse(localStorage.getItem('bucket_list') || '[]');
+        const item = items.find(i => i.id === id);
+        if (item) item.completed = isChecked;
+        localStorage.setItem('bucket_list', JSON.stringify(items));
+        renderBucketList();
+    }
+};
 
+window.deleteBucketItem = async function (id) {
+    if (confirm("Bu maddeyi silmek istiyor musun?")) {
         if (isFirebaseActive) {
-            await db.collection("bucket_list").doc(id).update({ completed: isChecked });
+            await db.collection("bucket_list").doc(id).delete();
         } else {
-            const items = JSON.parse(localStorage.getItem('bucket_list') || '[]');
-            const item = items.find(i => i.id === id);
-            if (item) item.completed = isChecked;
+            let items = JSON.parse(localStorage.getItem('bucket_list') || '[]');
+            items = items.filter(i => i.id !== id);
             localStorage.setItem('bucket_list', JSON.stringify(items));
             renderBucketList();
         }
-    };
-
-    window.deleteBucketItem = async function (id) {
-        if (confirm("Bu maddeyi silmek istiyor musun?")) {
-            if (isFirebaseActive) {
-                await db.collection("bucket_list").doc(id).delete();
-            } else {
-                let items = JSON.parse(localStorage.getItem('bucket_list') || '[]');
-                items = items.filter(i => i.id !== id);
-                localStorage.setItem('bucket_list', JSON.stringify(items));
-                renderBucketList();
-            }
-        }
-    };
-
-    // Sayfa geçişlerinde listeyi yükle
-    const observer = new MutationObserver((mutations) => {
-        mutations.forEach((mutation) => {
-            if (mutation.target.id === 'bucket-list-page' &&
-                mutation.target.classList.contains('active-page') &&
-                !mutation.oldValue.includes('active-page')) {
-                renderBucketList();
-            }
-        });
-    });
-
-    const bucketPage = document.getElementById('bucket-list-page');
-    if (bucketPage) {
-        observer.observe(bucketPage, { attributes: true, attributeFilter: ['class'], attributeOldValue: true });
-        if (bucketPage.classList.contains('active-page')) renderBucketList();
     }
+};
+
+// Sayfa geçişlerinde listeyi yükle
+const observer = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+        if (mutation.target.id === 'bucket-list-page' &&
+            mutation.target.classList.contains('active-page') &&
+            !mutation.oldValue.includes('active-page')) {
+            renderBucketList();
+        }
+    });
+});
+
+const bucketPage = document.getElementById('bucket-list-page');
+if (bucketPage) {
+    observer.observe(bucketPage, { attributes: true, attributeFilter: ['class'], attributeOldValue: true });
+    if (bucketPage.classList.contains('active-page')) renderBucketList();
+}
 
 // --- VERİ YÖNETİMİ & AYARLAR ---
 // --- AYARLAR KALDIRILDI ---
