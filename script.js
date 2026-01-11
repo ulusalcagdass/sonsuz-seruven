@@ -486,7 +486,7 @@ if (photoUpload) {
                 }
             } catch (error) {
                 console.error("Yükleme hatası:", error);
-                // Bir dosya hatalıysa diğerine geç
+                alert("Yükleme Başarısız: " + error.message + "\n(Video boyutu veritabanı sınırını aşıyor olabilir. Bulut için Storage servisi şart.)");
             }
         }
 
