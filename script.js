@@ -439,6 +439,45 @@ function hideUploadStatus() {
     uploadStatus.classList.add('hidden');
 }
 
+const CHUNK_SIZE = 800 * 1024; // 800KB chunks (safe margin for 1MB limit)
+
+async function saveMediaToFirestore(mediaItem) {
+    const content = mediaItem.url;
+
+    // Normal Kayıt (Küçük dosya)
+    if (content.length < CHUNK_SIZE) {
+        await db.collection("photos").add(mediaItem);
+        return;
+    }
+
+    // Parçalı Kayıt (Büyük dosya)
+    const totalChunks = Math.ceil(content.length / CHUNK_SIZE);
+    const docRef = db.collection("photos").doc(); // ID oluştur
+    const batch = db.batch();
+
+    // Ana döküman (İçeriksiz, metadata)
+    const metaItem = { ...mediaItem, url: "", isChunked: true, totalChunks: totalChunks };
+    batch.set(docRef, metaItem);
+
+    // Parçaları alt koleksiyona ekle
+    for (let i = 0; i < totalChunks; i++) {
+        const chunkContent = content.substring(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
+        const chunkRef = docRef.collection("chunks").doc(i.toString());
+        batch.set(chunkRef, { data: chunkContent, index: i });
+    }
+
+    await batch.commit();
+}
+
+async function fetchChunksAndReassemble(docId) {
+    const chunksSnapshot = await db.collection("photos").doc(docId).collection("chunks").orderBy("index").get();
+    let fullContent = "";
+    chunksSnapshot.forEach(doc => {
+        fullContent += doc.data().data;
+    });
+    return fullContent;
+}
+
 if (photoUpload) {
     photoUpload.addEventListener('change', async (e) => {
         const files = e.target.files;
@@ -450,8 +489,6 @@ if (photoUpload) {
         }
 
         const totalFiles = files.length;
-
-        // Kullanıcıya hangi tarihe yüklendiğini gösterelim
         const dateParts = uploadDate.split('-');
         const formattedDate = `${dateParts[2]}.${dateParts[1]}.${dateParts[0]}`;
         showUploadStatus(`${formattedDate} tarihine ${totalFiles} dosya yükleniyor...`);
@@ -459,22 +496,19 @@ if (photoUpload) {
         for (let i = 0; i < totalFiles; i++) {
             try {
                 showUploadStatus(`${i + 1}/${totalFiles} yükleniyor... (${formattedDate})`);
-
                 const file = files[i];
                 const isVideo = file.type.startsWith('video/');
                 let contentBase64;
                 let fileType = 'image';
 
                 if (isVideo) {
-                    // Video ise küçültme yapmadan direkt oku (Boyut kontrolü eklenebilir)
-                    if (file.size > 50 * 1024 * 1024) { // 50MB Limit
-                        alert(`Video çok büyük (${(file.size / 1024 / 1024).toFixed(1)}MB). Max 50MB yükleyebilirsin.`);
+                    if (file.size > 50 * 1024 * 1024) {
+                        alert(`Video çok büyük. Max 50MB.`);
                         continue;
                     }
                     contentBase64 = await readMediaFile(file);
                     fileType = 'video';
                 } else {
-                    // Fotoğraf ise küçült
                     contentBase64 = await resizeImage(file);
                     fileType = 'image';
                 }
@@ -487,7 +521,7 @@ if (photoUpload) {
                 };
 
                 if (isFirebaseActive) {
-                    await db.collection("photos").add(mediaItem);
+                    await saveMediaToFirestore(mediaItem);
                 } else {
                     const photos = JSON.parse(localStorage.getItem('photos') || '[]');
                     mediaItem.id = Date.now() + Math.random().toString(36);
@@ -496,10 +530,9 @@ if (photoUpload) {
                 }
             } catch (error) {
                 console.error("Yükleme hatası:", error);
-                alert("Yükleme Başarısız: " + error.message + "\n(Video boyutu veritabanı sınırını aşıyor olabilir. Bulut için Storage servisi şart.)");
+                alert("Hata: " + error.message);
             }
         }
-
         hideUploadStatus();
         if (!isFirebaseActive) renderPhotos();
         showUploadStatus("Tamamlandı! ✅");
@@ -513,29 +546,24 @@ function renderPhotos() {
 
     if (isFirebaseActive) {
         if (unsubscribePhotos) unsubscribePhotos();
-
         let query = db.collection("photos");
-        if (filterDate) {
-            query = query.where("date", "==", filterDate);
-        }
+        if (filterDate) query = query.where("date", "==", filterDate);
 
         unsubscribePhotos = query.onSnapshot(snapshot => {
             photoGrid.innerHTML = '';
             const photos = [];
             snapshot.forEach(doc => {
                 const data = doc.data();
-                photos.push({ id: doc.id, url: data.url, date: data.date, type: data.type, timestamp: data.timestamp });
+                // isChunked varsa url boştur, ama type video'dur.
+                photos.push({ id: doc.id, url: data.url, date: data.date, type: data.type, timestamp: data.timestamp, isChunked: data.isChunked });
             });
-
-            // Client-side sıralama
             photos.sort((a, b) => (b.timestamp || '').localeCompare(a.timestamp || ''));
 
             if (photos.length === 0) {
                 photoGrid.innerHTML = '<div class="empty-state">Fotoğraf bulunamadı.</div>';
                 return;
             }
-
-            photos.forEach(photo => createPhotoElement(photo.url, photo.id, photo.type));
+            photos.forEach(photo => createPhotoElement(photo.url, photo.id, photo.type, photo.isChunked));
         });
     } else {
         let photos = JSON.parse(localStorage.getItem('photos') || '[]');
@@ -544,84 +572,78 @@ function renderPhotos() {
             photoGrid.innerHTML = '<div class="empty-state">Fotoğraf bulunamadı.</div>';
             return;
         }
-        photos.reverse(); // En yeniden eskiye
-        photos.forEach(photo => createPhotoElement(photo.url, photo.id, photo.type));
+        photos.reverse();
+        photos.forEach(photo => createPhotoElement(photo.url, photo.id, photo.type, false));
     }
 }
 
-function createPhotoElement(url, id, type) {
+function createPhotoElement(url, id, type, isChunked) {
     const item = document.createElement('div');
     item.className = 'photo-item fade-in';
 
-    // Türü belirle (Eski verilerde type olmayabilir, URL'den tahmin et veya image varsay)
     const isVideo = type === 'video' || (url && url.startsWith('data:video'));
 
     if (isVideo) {
-        const video = document.createElement('video');
-        video.src = url;
-        video.controls = true;
-        video.style.width = '100%';
-        video.style.height = '100%';
-        video.style.objectFit = 'cover';
-        video.style.borderRadius = '15px'; // CSS uyumu
-        item.appendChild(video);
+        // Video için Placeholder veya Thumbnail
+        // Chunked ise URL boştur. 
+        const videoWrapper = document.createElement('div');
+        videoWrapper.style.width = '100%';
+        videoWrapper.style.height = '100%';
+        videoWrapper.style.background = '#000';
+        videoWrapper.style.display = 'flex';
+        videoWrapper.style.alignItems = 'center';
+        videoWrapper.style.justifyContent = 'center';
+        videoWrapper.style.borderRadius = '15px';
+        videoWrapper.style.color = '#fff';
+        videoWrapper.innerHTML = '🎥<br>Oynat';
+        videoWrapper.style.textAlign = 'center';
+        videoWrapper.style.cursor = 'pointer';
 
-        // Videoya tıklanınca lightbox açılmasın, kendi oynatıcısını kullansın diye
-        // event listener'ı sadece container'a değil, belki overlay'e koyabilirdik.
-        // Ama şimdilik basit tutalım: Video üzerine tıklayınca video oynar.
-        // Silme işlemi için uzun basma veya kenarda buton gerekebilir.
+        videoWrapper.onclick = () => openLightbox(url, id, 'video', isChunked);
 
-        // Geçici çözüm: Video oynarken üzerine çift tık veya lightbox butonu?
-        // Bizim tasarımda delete sadece lightbox içinde var.
-        // O yüzden lightbox'ı açtırmamız lazım bir şekilde.
-        // Video kontrolleri (play/pause) ile çakışmaması için:
-
-        const deleteOverlay = document.createElement('div');
-        deleteOverlay.innerHTML = '🔍 Büyüt / Sil';
-        deleteOverlay.style.position = 'absolute';
-        deleteOverlay.style.bottom = '5px';
-        deleteOverlay.style.right = '5px';
-        deleteOverlay.style.background = 'rgba(0,0,0,0.5)';
-        deleteOverlay.style.color = '#fff';
-        deleteOverlay.style.padding = '5px 10px';
-        deleteOverlay.style.borderRadius = '10px';
-        deleteOverlay.style.fontSize = '12px';
-        deleteOverlay.style.cursor = 'pointer';
-        deleteOverlay.onclick = (e) => {
-            e.stopPropagation();
-            openLightbox(url, id, 'video');
-        };
-        item.appendChild(deleteOverlay);
-
+        item.appendChild(videoWrapper);
     } else {
         item.style.backgroundImage = `url(${url})`;
-        item.addEventListener('click', () => { openLightbox(url, id, 'image'); });
+        item.addEventListener('click', () => { openLightbox(url, id, 'image', false); });
     }
-
     photoGrid.appendChild(item);
 }
 
 let currentPhotoId = null;
-function openLightbox(url, id, type) {
+async function openLightbox(url, id, type, isChunked) {
     lightbox.style.display = "block";
+    const videoEl = document.getElementById('lightbox-video') || document.createElement('video');
 
-    let videoEl = document.getElementById('lightbox-video');
-    if (!videoEl) {
-        videoEl = document.createElement('video');
+    if (!document.getElementById('lightbox-video')) {
         videoEl.id = 'lightbox-video';
         videoEl.controls = true;
         videoEl.style.maxWidth = '90%';
         videoEl.style.maxHeight = '80vh';
-        videoEl.style.display = 'none';
         videoEl.style.margin = '0 auto';
-        // lightboxImg'in yanına ekle
         lightbox.insertBefore(videoEl, lightboxImg);
     }
 
-    if (type === 'video' || (url && url.startsWith('data:video'))) {
+    if (type === 'video') {
         lightboxImg.style.display = 'none';
         videoEl.style.display = 'block';
-        videoEl.src = url;
+
+        if (isChunked) {
+            // Loading durumu
+            videoEl.src = "";
+            // Basit bir loading göstergesi (text)
+            // (Geliştirilebilir)
+
+            try {
+                const fullData = await fetchChunksAndReassemble(id);
+                videoEl.src = fullData;
+                videoEl.play();
+            } catch (e) {
+                alert("Video yüklenemedi: " + e.message);
+            }
+        } else {
+            videoEl.src = url;
+            videoEl.play();
+        }
     } else {
         videoEl.style.display = 'none';
         videoEl.pause();
@@ -638,10 +660,21 @@ function openLightbox(url, id, type) {
     deleteBtn.id = 'lightbox-delete-btn';
     deleteBtn.className = 'lightbox-delete-btn';
     deleteBtn.innerHTML = '🗑️ Sil';
+
+    // Silme işlemi (Chunk'ları da silmeli)
     deleteBtn.onclick = async (e) => {
         e.stopPropagation();
-        if (confirm("Bu fotoğrafı silmek istediğine emin misin?")) {
-            await deletePhoto(currentPhotoId);
+        if (confirm("Silinsin mi?")) {
+            if (isFirebaseActive && isChunked) {
+                // Chunkları sil
+                const chunks = await db.collection("photos").doc(id).collection("chunks").get();
+                const batch = db.batch();
+                chunks.forEach(doc => batch.delete(doc.ref));
+                batch.delete(db.collection("photos").doc(id));
+                await batch.commit();
+            } else {
+                await deletePhoto(id);
+            }
             lightbox.style.display = "none";
         }
     };
