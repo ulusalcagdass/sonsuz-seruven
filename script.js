@@ -210,11 +210,22 @@ getLocationBtn.addEventListener('click', () => {
         const lon = position.coords.longitude;
         getLocationBtn.textContent = "Adres bulunuyor...";
         try {
-            const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json?lat=${lat}&lon=${lon}`);
+            const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`);
             const data = await response.json();
-            const district = data.address.suburb || data.address.district || "";
+
+            // Daha detaylı adres (Kafe ismi, Mağaza ismi vb.)
+            const venue = data.address.amenity || data.address.shop || data.address.tourism || data.address.building || "";
+            const district = data.address.suburb || data.address.district || data.address.neighbourhood || "";
             const city = data.address.province || data.address.city || "";
-            journalLocation.value = `${district} ${city}`.trim() || `${lat.toFixed(2)}, ${lon.toFixed(2)}`;
+
+            let finalLocation = "";
+            if (venue) {
+                finalLocation = `${venue}, ${district}`; // Örn: Starbucks, Kadıköy
+            } else {
+                finalLocation = `${district} ${city}`.trim(); // Örn: Kadıköy İstanbul
+            }
+
+            journalLocation.value = finalLocation || `${lat.toFixed(2)}, ${lon.toFixed(2)}`;
             getLocationBtn.textContent = "📍 Konumu Bul";
         } catch (e) {
             journalLocation.value = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
@@ -435,32 +446,58 @@ photoUpload.addEventListener('change', async (e) => {
     showUploadStatus(`${formattedDate} tarihine ${totalFiles} fotoğraf yükleniyor...`);
 
     for (let i = 0; i < totalFiles; i++) {
-        try {
-            showUploadStatus(`${i + 1}/${totalFiles} yükleniyor... (${formattedDate})`);
-            const base64Image = await resizeImage(files[i]);
+        showUploadStatus(`${i + 1}/${totalFiles} yükleniyor... (${formattedDate})`);
 
-            if (isFirebaseActive) {
-                await db.collection("photos").add({ url: base64Image, date: uploadDate, timestamp: new Date().toISOString() });
-            } else {
-                try {
-                    const photos = JSON.parse(localStorage.getItem('photos') || '[]');
-                    photos.push({ id: Date.now() + Math.random().toString(36), url: base64Image, date: uploadDate });
-                    localStorage.setItem('photos', JSON.stringify(photos));
-                } catch (error) {
-                    hideUploadStatus();
-                    console.error("LocalStorage hatası:", error);
-                    alert("KAYIT HATASI: " + error.name + "\nDetay: " + error.message);
-                    return;
-                }
+        const file = files[i];
+        const isVideo = file.type.startsWith('video/');
+        let contentBase64;
+        let fileType = 'image';
+
+        if (isVideo) {
+            // Video ise küçültme yapmadan direkt oku (Boyut kontrolü eklenebilir)
+            if (file.size > 15 * 1024 * 1024) { // 15MB Limit
+                alert(`Video çok büyük (${(file.size / 1024 / 1024).toFixed(1)}MB). Max 15MB yükleyebilirsin.`);
+                continue;
             }
-        } catch (error) {
-            console.error("Hata:", error);
+            contentBase64 = await readFileAsDataURL(file);
+            fileType = 'video';
+        } else {
+            // Fotoğraf ise küçült
+            contentBase64 = await resizeImage(file);
+            fileType = 'image';
         }
+
+        const mediaItem = {
+            url: contentBase64,
+            date: uploadDate,
+            timestamp: new Date().toISOString(),
+            type: fileType
+        };
+
+        if (isFirebaseActive) {
+            await db.collection("photos").add(mediaItem);
+        } else {
+            try {
+                const photos = JSON.parse(localStorage.getItem('photos') || '[]');
+                // ID ekleyelim
+                mediaItem.id = Date.now() + Math.random().toString(36);
+                photos.push(mediaItem);
+                localStorage.setItem('photos', JSON.stringify(photos));
+            } catch (error) {
+                hideUploadStatus();
+                console.error("LocalStorage hatası:", error);
+                alert("KAYIT HATASI: " + error.name + "\nDetay: " + error.message);
+                return;
+            }
+        }
+    } catch (error) {
+        console.error("Hata:", error);
     }
+}
     hideUploadStatus();
-    if (!isFirebaseActive) renderPhotos();
-    showUploadStatus("Tamamlandı! ✅");
-    setTimeout(hideUploadStatus, 2000);
+if (!isFirebaseActive) renderPhotos();
+showUploadStatus("Tamamlandı! ✅");
+setTimeout(hideUploadStatus, 2000);
 });
 
 function renderPhotos() {
@@ -504,18 +541,68 @@ function renderPhotos() {
     }
 }
 
-function createPhotoElement(url, id) {
-    const img = document.createElement('div');
-    img.className = 'photo-item fade-in';
-    img.style.backgroundImage = `url(${url})`;
-    img.addEventListener('click', () => { openLightbox(url, id); });
-    photoGrid.appendChild(img);
+function createPhotoElement(url, id, type) {
+    const item = document.createElement('div');
+    item.className = 'photo-item fade-in';
+
+    // Türü belirle (Eski verilerde type olmayabilir, URL'den tahmin et veya image varsay)
+    const isVideo = type === 'video' || (url && url.startsWith('data:video'));
+
+    if (isVideo) {
+        const video = document.createElement('video');
+        video.src = url;
+        video.controls = true;
+        video.style.width = '100%';
+        video.style.height = '100%';
+        video.style.objectFit = 'cover';
+        video.style.borderRadius = '15px'; // CSS uyumu
+        item.appendChild(video);
+
+        // Videoya tıklanınca lightbox açılmasın, kendi oynatıcısını kullansın
+        // Ama silme butonu eklememiz lazım, bu tasarımda zor olabilir.
+        // Şimdilik lightbox'a yönlendirelim, orada silsin.
+        item.addEventListener('click', (e) => {
+            // Video kontrollerine basınca açılmaması için
+            if (e.target.tagName !== 'VIDEO') {
+                openLightbox(url, id, 'video');
+            }
+        });
+    } else {
+        item.style.backgroundImage = `url(${url})`;
+        item.addEventListener('click', () => { openLightbox(url, id, 'image'); });
+    }
+
+    photoGrid.appendChild(item);
 }
 
 let currentPhotoId = null;
-function openLightbox(url, id) {
+function openLightbox(url, id, type) {
     lightbox.style.display = "block";
-    lightboxImg.src = url;
+
+    // Video ise img tagini gizle video koy, resimse tam tersi
+    let videoEl = document.getElementById('lightbox-video');
+    if (!videoEl) {
+        videoEl = document.createElement('video');
+        videoEl.id = 'lightbox-video';
+        videoEl.controls = true;
+        videoEl.style.maxWidth = '90%';
+        videoEl.style.maxHeight = '80vh';
+        videoEl.style.display = 'none';
+        // lightboxImg'in yanına ekle (veya yerine)
+        lightbox.insertBefore(videoEl, lightboxImg);
+    }
+
+    if (type === 'video' || url.startsWith('data:video')) {
+        lightboxImg.style.display = 'none';
+        videoEl.style.display = 'block';
+        videoEl.src = url;
+    } else {
+        videoEl.style.display = 'none';
+        videoEl.pause(); // Varsa önceki videoyu durdur
+        lightboxImg.style.display = 'block';
+        lightboxImg.src = url;
+    }
+
     currentPhotoId = id;
 
     const oldBtn = document.getElementById('lightbox-delete-btn');
