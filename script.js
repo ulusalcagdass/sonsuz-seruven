@@ -446,55 +446,47 @@ photoUpload.addEventListener('change', async (e) => {
     showUploadStatus(`${formattedDate} tarihine ${totalFiles} fotoğraf yükleniyor...`);
 
     for (let i = 0; i < totalFiles; i++) {
-        showUploadStatus(`${i + 1}/${totalFiles} yükleniyor... (${formattedDate})`);
-
-        const file = files[i];
-        const isVideo = file.type.startsWith('video/');
-        let contentBase64;
-        let fileType = 'image';
-
-        if (isVideo) {
-            // Video ise küçültme yapmadan direkt oku (Boyut kontrolü eklenebilir)
-            if (file.size > 15 * 1024 * 1024) { // 15MB Limit
-                alert(`Video çok büyük (${(file.size / 1024 / 1024).toFixed(1)}MB). Max 15MB yükleyebilirsin.`);
-                continue;
-            }
-            contentBase64 = await readFileAsDataURL(file);
-            fileType = 'video';
-        } else {
-            // Fotoğraf ise küçült
-            contentBase64 = await resizeImage(file);
-            fileType = 'image';
+        // Video ise küçültme yapmadan direkt oku (Boyut kontrolü eklenebilir)
+        if (file.size > 15 * 1024 * 1024) { // 15MB Limit
+            alert(`Video çok büyük (${(file.size / 1024 / 1024).toFixed(1)}MB). Max 15MB yükleyebilirsin.`);
+            continue;
         }
-
-        const mediaItem = {
-            url: contentBase64,
-            date: uploadDate,
-            timestamp: new Date().toISOString(),
-            type: fileType
-        };
-
-        if (isFirebaseActive) {
-            await db.collection("photos").add(mediaItem);
-        } else {
-            try {
-                const photos = JSON.parse(localStorage.getItem('photos') || '[]');
-                // ID ekleyelim
-                mediaItem.id = Date.now() + Math.random().toString(36);
-                photos.push(mediaItem);
-                localStorage.setItem('photos', JSON.stringify(photos));
-            } catch (error) {
-                hideUploadStatus();
-                console.error("LocalStorage hatası:", error);
-                alert("KAYIT HATASI: " + error.name + "\nDetay: " + error.message);
-                return;
-            }
-        }
-    } catch (error) {
-        console.error("Hata:", error);
+        contentBase64 = await readFileAsDataURL(file);
+        fileType = 'video';
+    } else {
+        // Fotoğraf ise küçült
+        contentBase64 = await resizeImage(file);
+        fileType = 'image';
     }
+
+    const mediaItem = {
+        url: contentBase64,
+        date: uploadDate,
+        timestamp: new Date().toISOString(),
+        type: fileType
+    };
+
+    if (isFirebaseActive) {
+        await db.collection("photos").add(mediaItem);
+    } else {
+        try {
+            const photos = JSON.parse(localStorage.getItem('photos') || '[]');
+            // ID ekleyelim
+            mediaItem.id = Date.now() + Math.random().toString(36);
+            photos.push(mediaItem);
+            localStorage.setItem('photos', JSON.stringify(photos));
+        } catch (error) {
+            hideUploadStatus();
+            console.error("LocalStorage hatası:", error);
+            alert("KAYIT HATASI: " + error.name + "\nDetay: " + error.message);
+            return;
+        }
+    }
+} catch (error) {
+    console.error("Hata:", error);
 }
-    hideUploadStatus();
+}
+hideUploadStatus();
 if (!isFirebaseActive) renderPhotos();
 showUploadStatus("Tamamlandı! ✅");
 setTimeout(hideUploadStatus, 2000);
