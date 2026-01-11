@@ -257,7 +257,8 @@ addNoteBtn.addEventListener('click', async () => {
             renderMemories();
             alert("Anı telefona kaydedildi!");
         } catch (error) {
-            alert("HATA: Telefon hafızası dolu! Lütfen bazı fotoğrafları veya anıları silip tekrar deneyin.");
+            console.error("LocalStorage hatası:", error);
+            alert("KAYIT HATASI: " + error.name + "\nDetay: " + error.message + "\n\n(Hafıza dolu olmayabilir, gizli sekme veya tarayıcı kısıtlaması olabilir.)");
         }
     }
     journalLocation.value = '';
@@ -448,7 +449,8 @@ photoUpload.addEventListener('change', async (e) => {
                     localStorage.setItem('photos', JSON.stringify(photos));
                 } catch (error) {
                     hideUploadStatus();
-                    alert("HATA: Telefon hafızası dolu! Fotoğraf yüklenemedi. Lütfen bazı fotoğrafları silin.");
+                    console.error("LocalStorage hatası:", error);
+                    alert("KAYIT HATASI: " + error.name + "\nDetay: " + error.message);
                     return;
                 }
             }
@@ -576,7 +578,8 @@ async function addBucketItem() {
             localStorage.setItem('bucket_list', JSON.stringify(items));
             renderBucketList();
         } catch (error) {
-            alert("HATA: Telefon hafızası dolu! Yeni madde eklenemedi.");
+            console.error("LocalStorage hatası:", error);
+            alert("KAYIT HATASI: " + error.name + "\nDetay: " + error.message);
         }
     }
     bucketInput.value = '';
@@ -686,7 +689,7 @@ function calculateStorage() {
     }
     // 5MB = 5 * 1024 * 1024 bytes (yaklaşık)
     // Karakter başına 2 byte (UTF-16)
-    const max = 5 * 1024 * 1024; 
+    const max = 5 * 1024 * 1024;
     const percentage = Math.min((total / max) * 100, 100).toFixed(1);
     const usedMB = (total / (1024 * 1024)).toFixed(2);
 
