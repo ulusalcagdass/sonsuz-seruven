@@ -394,6 +394,15 @@ clearFilterBtn.addEventListener('click', () => {
 closeLightbox.addEventListener('click', () => { lightbox.style.display = "none"; });
 lightbox.addEventListener('click', (e) => { if (e.target === lightbox) lightbox.style.display = "none"; });
 
+function readFileAsDataURL(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target.result);
+        reader.onerror = (e) => reject(e);
+        reader.readAsDataURL(file);
+    });
+}
+
 function resizeImage(file) {
     return new Promise((resolve) => {
         const reader = new FileReader();
