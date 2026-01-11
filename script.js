@@ -1,4 +1,5 @@
 // Sabit Başlangıç Tarihi: 30 Kasım 2018
+console.log("APP VERSION: v1008 LOADED");
 const startDate = new Date('2018-11-30T00:00:00');
 
 // DOM Elementleri
@@ -394,7 +395,7 @@ clearFilterBtn.addEventListener('click', () => {
 closeLightbox.addEventListener('click', () => { lightbox.style.display = "none"; });
 lightbox.addEventListener('click', (e) => { if (e.target === lightbox) lightbox.style.display = "none"; });
 
-function readFileAsDataURL(file) {
+function readMediaFile(file) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = (e) => resolve(e.target.result);
@@ -470,7 +471,7 @@ if (photoUpload) {
                         alert(`Video çok büyük (${(file.size / 1024 / 1024).toFixed(1)}MB). Max 50MB yükleyebilirsin.`);
                         continue;
                     }
-                    contentBase64 = await readFileAsDataURL(file);
+                    contentBase64 = await readMediaFile(file);
                     fileType = 'video';
                 } else {
                     // Fotoğraf ise küçült
