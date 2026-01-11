@@ -429,486 +429,348 @@ function hideUploadStatus() {
     uploadStatus.classList.add('hidden');
 }
 
-photoUpload.addEventListener('change', async (e) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
+if (photoUpload) {
+    photoUpload.addEventListener('change', async (e) => {
+        const files = e.target.files;
+        if (!files || files.length === 0) return;
 
-    let uploadDate = photoFilterDate.value;
-    if (!uploadDate) {
-        uploadDate = getLocalDateString();
-    }
+        let uploadDate = photoFilterDate.value;
+        if (!uploadDate) {
+            uploadDate = getLocalDateString();
+        }
 
-    const totalFiles = files.length;
+        const totalFiles = files.length;
 
-    // Kullanıcıya hangi tarihe yüklendiğini gösterelim
-    const dateParts = uploadDate.split('-');
-    const formattedDate = `${dateParts[2]}.${dateParts[1]}.${dateParts[0]}`;
-    showUploadStatus(`${formattedDate} tarihine ${totalFiles} dosya yükleniyor...`);
+        // Kullanıcıya hangi tarihe yüklendiğini gösterelim
+        const dateParts = uploadDate.split('-');
+        const formattedDate = `${dateParts[2]}.${dateParts[1]}.${dateParts[0]}`;
+        showUploadStatus(`${formattedDate} tarihine ${totalFiles} dosya yükleniyor...`);
 
-    for (let i = 0; i < totalFiles; i++) {
-        try {
-            showUploadStatus(`${i + 1}/${totalFiles} yükleniyor... (${formattedDate})`);
+        for (let i = 0; i < totalFiles; i++) {
+            try {
+                showUploadStatus(`${i + 1}/${totalFiles} yükleniyor... (${formattedDate})`);
 
-            const file = files[i];
-            const isVideo = file.type.startsWith('video/');
-            let contentBase64;
-            let fileType = 'image';
+                const file = files[i];
+                const isVideo = file.type.startsWith('video/');
+                let contentBase64;
+                let fileType = 'image';
 
-            if (isVideo) {
-                // Video ise küçültme yapmadan direkt oku (Boyut kontrolü eklenebilir)
-                if (file.size > 15 * 1024 * 1024) { // 15MB Limit
-                    alert(`Video çok büyük (${(file.size / 1024 / 1024).toFixed(1)}MB). Max 15MB yükleyebilirsin.`);
-                    continue;
+                if (isVideo) {
+                    // Video ise küçültme yapmadan direkt oku (Boyut kontrolü eklenebilir)
+                    if (file.size > 15 * 1024 * 1024) { // 15MB Limit
+                        alert(`Video çok büyük (${(file.size / 1024 / 1024).toFixed(1)}MB). Max 15MB yükleyebilirsin.`);
+                        continue;
+                    }
+                    contentBase64 = await readFileAsDataURL(file);
+                    fileType = 'video';
+                } else {
+                    // Fotoğraf ise küçült
+                    contentBase64 = await resizeImage(file);
+                    fileType = 'image';
                 }
-                contentBase64 = await readFileAsDataURL(file);
-                fileType = 'video';
-            } else {
-                // Fotoğraf ise küçült
-                contentBase64 = await resizeImage(file);
-                fileType = 'image';
+
+                const mediaItem = {
+                    url: contentBase64,
+                    date: uploadDate,
+                    timestamp: new Date().toISOString(),
+                    type: fileType
+                };
+
+                if (isFirebaseActive) {
+                    await db.collection("photos").add(mediaItem);
+                } else {
+                    const photos = JSON.parse(localStorage.getItem('photos') || '[]');
+                    mediaItem.id = Date.now() + Math.random().toString(36);
+                    photos.push(mediaItem);
+                    localStorage.setItem('photos', JSON.stringify(photos));
+                }
+            } catch (error) {
+                console.error("Yükleme hatası:", error);
+                // Bir dosya hatalıysa diğerine geç
             }
-
-            const mediaItem = {
-                url: contentBase64,
-                date: uploadDate,
-                timestamp: new Date().toISOString(),
-                type: fileType
-            };
-
-            if (isFirebaseActive) {
-                await db.collection("photos").add(mediaItem);
-            } else {
-                const photos = JSON.parse(localStorage.getItem('photos') || '[]');
-                mediaItem.id = Date.now() + Math.random().toString(36);
-                photos.push(mediaItem);
-                localStorage.setItem('photos', JSON.stringify(photos));
-            }
-        } catch (error) {
-            console.error("Yükleme hatası:", error);
-            // Bir dosya hatalıysa diğerine geç
-        }
-    }
-
-    hideUploadStatus();
-    if (!isFirebaseActive) renderPhotos();
-    showUploadStatus("Tamamlandı! ✅");
-    setTimeout(hideUploadStatus, 2000);
-});
-
-function renderPhotos() {
-    photoGrid.innerHTML = '';
-    const filterDate = photoFilterDate.value;
-
-    if (isFirebaseActive) {
-        if (unsubscribePhotos) unsubscribePhotos();
-
-        let query = db.collection("photos");
-        if (filterDate) {
-            query = query.where("date", "==", filterDate);
         }
 
-        unsubscribePhotos = query.onSnapshot(snapshot => {
-            photoGrid.innerHTML = '';
-            const photos = [];
-            snapshot.forEach(doc => {
-                const data = doc.data();
-                photos.push({ id: doc.id, url: data.url, date: data.date, type: data.type, timestamp: data.timestamp });
+        hideUploadStatus();
+        if (!isFirebaseActive) renderPhotos();
+        showUploadStatus("Tamamlandı! ✅");
+        setTimeout(hideUploadStatus, 2000);
+    });
+
+    function renderPhotos() {
+        photoGrid.innerHTML = '';
+        const filterDate = photoFilterDate.value;
+
+        if (isFirebaseActive) {
+            if (unsubscribePhotos) unsubscribePhotos();
+
+            let query = db.collection("photos");
+            if (filterDate) {
+                query = query.where("date", "==", filterDate);
+            }
+
+            unsubscribePhotos = query.onSnapshot(snapshot => {
+                photoGrid.innerHTML = '';
+                const photos = [];
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    photos.push({ id: doc.id, url: data.url, date: data.date, type: data.type, timestamp: data.timestamp });
+                });
+
+                // Client-side sıralama
+                photos.sort((a, b) => (b.timestamp || '').localeCompare(a.timestamp || ''));
+
+                if (photos.length === 0) {
+                    photoGrid.innerHTML = '<div class="empty-state">Fotoğraf bulunamadı.</div>';
+                    return;
+                }
+
+                photos.forEach(photo => createPhotoElement(photo.url, photo.id, photo.type));
             });
-
-            // Client-side sıralama
-            photos.sort((a, b) => (b.timestamp || '').localeCompare(a.timestamp || ''));
-
+        } else {
+            let photos = JSON.parse(localStorage.getItem('photos') || '[]');
+            if (filterDate) photos = photos.filter(p => p.date === filterDate);
             if (photos.length === 0) {
                 photoGrid.innerHTML = '<div class="empty-state">Fotoğraf bulunamadı.</div>';
                 return;
             }
-
+            photos.reverse(); // En yeniden eskiye
             photos.forEach(photo => createPhotoElement(photo.url, photo.id, photo.type));
-        });
-    } else {
-        let photos = JSON.parse(localStorage.getItem('photos') || '[]');
-        if (filterDate) photos = photos.filter(p => p.date === filterDate);
-        if (photos.length === 0) {
-            photoGrid.innerHTML = '<div class="empty-state">Fotoğraf bulunamadı.</div>';
-            return;
         }
-        photos.reverse(); // En yeniden eskiye
-        photos.forEach(photo => createPhotoElement(photo.url, photo.id, photo.type));
     }
-}
 
-function createPhotoElement(url, id, type) {
-    const item = document.createElement('div');
-    item.className = 'photo-item fade-in';
+    function createPhotoElement(url, id, type) {
+        const item = document.createElement('div');
+        item.className = 'photo-item fade-in';
 
-    // Türü belirle (Eski verilerde type olmayabilir, URL'den tahmin et veya image varsay)
-    const isVideo = type === 'video' || (url && url.startsWith('data:video'));
+        // Türü belirle (Eski verilerde type olmayabilir, URL'den tahmin et veya image varsay)
+        const isVideo = type === 'video' || (url && url.startsWith('data:video'));
 
-    if (isVideo) {
-        const video = document.createElement('video');
-        video.src = url;
-        video.controls = true;
-        video.style.width = '100%';
-        video.style.height = '100%';
-        video.style.objectFit = 'cover';
-        video.style.borderRadius = '15px'; // CSS uyumu
-        item.appendChild(video);
+        if (isVideo) {
+            const video = document.createElement('video');
+            video.src = url;
+            video.controls = true;
+            video.style.width = '100%';
+            video.style.height = '100%';
+            video.style.objectFit = 'cover';
+            video.style.borderRadius = '15px'; // CSS uyumu
+            item.appendChild(video);
 
-        // Videoya tıklanınca lightbox açılmasın, kendi oynatıcısını kullansın diye
-        // event listener'ı sadece container'a değil, belki overlay'e koyabilirdik.
-        // Ama şimdilik basit tutalım: Video üzerine tıklayınca video oynar.
-        // Silme işlemi için uzun basma veya kenarda buton gerekebilir.
+            // Videoya tıklanınca lightbox açılmasın, kendi oynatıcısını kullansın diye
+            // event listener'ı sadece container'a değil, belki overlay'e koyabilirdik.
+            // Ama şimdilik basit tutalım: Video üzerine tıklayınca video oynar.
+            // Silme işlemi için uzun basma veya kenarda buton gerekebilir.
 
-        // Geçici çözüm: Video oynarken üzerine çift tık veya lightbox butonu?
-        // Bizim tasarımda delete sadece lightbox içinde var.
-        // O yüzden lightbox'ı açtırmamız lazım bir şekilde.
-        // Video kontrolleri (play/pause) ile çakışmaması için:
+            // Geçici çözüm: Video oynarken üzerine çift tık veya lightbox butonu?
+            // Bizim tasarımda delete sadece lightbox içinde var.
+            // O yüzden lightbox'ı açtırmamız lazım bir şekilde.
+            // Video kontrolleri (play/pause) ile çakışmaması için:
 
-        const deleteOverlay = document.createElement('div');
-        deleteOverlay.innerHTML = '🔍 Büyüt / Sil';
-        deleteOverlay.style.position = 'absolute';
-        deleteOverlay.style.bottom = '5px';
-        deleteOverlay.style.right = '5px';
-        deleteOverlay.style.background = 'rgba(0,0,0,0.5)';
-        deleteOverlay.style.color = '#fff';
-        deleteOverlay.style.padding = '5px 10px';
-        deleteOverlay.style.borderRadius = '10px';
-        deleteOverlay.style.fontSize = '12px';
-        deleteOverlay.style.cursor = 'pointer';
-        deleteOverlay.onclick = (e) => {
+            const deleteOverlay = document.createElement('div');
+            deleteOverlay.innerHTML = '🔍 Büyüt / Sil';
+            deleteOverlay.style.position = 'absolute';
+            deleteOverlay.style.bottom = '5px';
+            deleteOverlay.style.right = '5px';
+            deleteOverlay.style.background = 'rgba(0,0,0,0.5)';
+            deleteOverlay.style.color = '#fff';
+            deleteOverlay.style.padding = '5px 10px';
+            deleteOverlay.style.borderRadius = '10px';
+            deleteOverlay.style.fontSize = '12px';
+            deleteOverlay.style.cursor = 'pointer';
+            deleteOverlay.onclick = (e) => {
+                e.stopPropagation();
+                openLightbox(url, id, 'video');
+            };
+            item.appendChild(deleteOverlay);
+
+        } else {
+            item.style.backgroundImage = `url(${url})`;
+            item.addEventListener('click', () => { openLightbox(url, id, 'image'); });
+        }
+
+        photoGrid.appendChild(item);
+    }
+
+    let currentPhotoId = null;
+    function openLightbox(url, id, type) {
+        lightbox.style.display = "block";
+
+        let videoEl = document.getElementById('lightbox-video');
+        if (!videoEl) {
+            videoEl = document.createElement('video');
+            videoEl.id = 'lightbox-video';
+            videoEl.controls = true;
+            videoEl.style.maxWidth = '90%';
+            videoEl.style.maxHeight = '80vh';
+            videoEl.style.display = 'none';
+            videoEl.style.margin = '0 auto';
+            // lightboxImg'in yanına ekle
+            lightbox.insertBefore(videoEl, lightboxImg);
+        }
+
+        if (type === 'video' || (url && url.startsWith('data:video'))) {
+            lightboxImg.style.display = 'none';
+            videoEl.style.display = 'block';
+            videoEl.src = url;
+        } else {
+            videoEl.style.display = 'none';
+            videoEl.pause();
+            lightboxImg.style.display = 'block';
+            lightboxImg.src = url;
+        }
+
+        currentPhotoId = id;
+
+        const oldBtn = document.getElementById('lightbox-delete-btn');
+        if (oldBtn) oldBtn.remove();
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.id = 'lightbox-delete-btn';
+        deleteBtn.className = 'lightbox-delete-btn';
+        deleteBtn.innerHTML = '🗑️ Sil';
+        deleteBtn.onclick = async (e) => {
             e.stopPropagation();
-            openLightbox(url, id, 'video');
+            if (confirm("Bu fotoğrafı silmek istediğine emin misin?")) {
+                await deletePhoto(currentPhotoId);
+                lightbox.style.display = "none";
+            }
         };
-        item.appendChild(deleteOverlay);
-
-    } else {
-        item.style.backgroundImage = `url(${url})`;
-        item.addEventListener('click', () => { openLightbox(url, id, 'image'); });
+        lightbox.appendChild(deleteBtn);
     }
 
-    photoGrid.appendChild(item);
-}
-
-let currentPhotoId = null;
-function openLightbox(url, id, type) {
-    lightbox.style.display = "block";
-
-    let videoEl = document.getElementById('lightbox-video');
-    if (!videoEl) {
-        videoEl = document.createElement('video');
-        videoEl.id = 'lightbox-video';
-        videoEl.controls = true;
-        videoEl.style.maxWidth = '90%';
-        videoEl.style.maxHeight = '80vh';
-        videoEl.style.display = 'none';
-        videoEl.style.margin = '0 auto';
-        // lightboxImg'in yanına ekle
-        lightbox.insertBefore(videoEl, lightboxImg);
-    }
-
-    if (type === 'video' || (url && url.startsWith('data:video'))) {
-        lightboxImg.style.display = 'none';
-        videoEl.style.display = 'block';
-        videoEl.src = url;
-    } else {
-        videoEl.style.display = 'none';
-        videoEl.pause();
-        lightboxImg.style.display = 'block';
-        lightboxImg.src = url;
-    }
-
-    currentPhotoId = id;
-
-    const oldBtn = document.getElementById('lightbox-delete-btn');
-    if (oldBtn) oldBtn.remove();
-
-    const deleteBtn = document.createElement('button');
-    deleteBtn.id = 'lightbox-delete-btn';
-    deleteBtn.className = 'lightbox-delete-btn';
-    deleteBtn.innerHTML = '🗑️ Sil';
-    deleteBtn.onclick = async (e) => {
-        e.stopPropagation();
-        if (confirm("Bu fotoğrafı silmek istediğine emin misin?")) {
-            await deletePhoto(currentPhotoId);
-            lightbox.style.display = "none";
-        }
-    };
-    lightbox.appendChild(deleteBtn);
-}
-
-async function deletePhoto(id) {
-    if (isFirebaseActive) {
-        await db.collection("photos").doc(id).delete();
-    } else {
-        let photos = JSON.parse(localStorage.getItem('photos') || '[]');
-        photos = photos.filter(p => p.id !== id);
-        localStorage.setItem('photos', JSON.stringify(photos));
-        renderPhotos();
-    }
-}
-
-renderMemories();
-renderPhotos();
-
-// --- YAPILACAKLAR LİSTESİ (BUCKET LIST) ---
-const bucketInput = document.getElementById('bucket-input');
-const addBucketBtn = document.getElementById('add-bucket-btn');
-const bucketList = document.getElementById('bucket-list');
-let unsubscribeBucket = null;
-
-// Event Listener'ı güvenli bir şekilde ekle
-if (addBucketBtn) {
-    addBucketBtn.addEventListener('click', addBucketItem);
-}
-
-async function addBucketItem() {
-    const text = bucketInput.value.trim();
-    if (!text) return;
-
-    if (isFirebaseActive) {
-        await db.collection("bucket_list").add({
-            text: text,
-            completed: false,
-            timestamp: new Date().toISOString()
-        });
-    } else {
-        try {
-            const items = JSON.parse(localStorage.getItem('bucket_list') || '[]');
-            items.push({ id: Date.now().toString(), text: text, completed: false });
-            localStorage.setItem('bucket_list', JSON.stringify(items));
-            renderBucketList();
-        } catch (error) {
-            console.error("LocalStorage hatası:", error);
-            alert("KAYIT HATASI: " + error.name + "\nDetay: " + error.message);
+    async function deletePhoto(id) {
+        if (isFirebaseActive) {
+            await db.collection("photos").doc(id).delete();
+        } else {
+            let photos = JSON.parse(localStorage.getItem('photos') || '[]');
+            photos = photos.filter(p => p.id !== id);
+            localStorage.setItem('photos', JSON.stringify(photos));
+            renderPhotos();
         }
     }
-    bucketInput.value = '';
-}
 
-function renderBucketList() {
-    if (!bucketList) return;
-    bucketList.innerHTML = '';
+    renderMemories();
+    renderPhotos();
 
-    if (isFirebaseActive) {
-        if (unsubscribeBucket) unsubscribeBucket();
+    // --- YAPILACAKLAR LİSTESİ (BUCKET LIST) ---
+    const bucketInput = document.getElementById('bucket-input');
+    const addBucketBtn = document.getElementById('add-bucket-btn');
+    const bucketList = document.getElementById('bucket-list');
+    let unsubscribeBucket = null;
 
-        unsubscribeBucket = db.collection("bucket_list")
-            .orderBy("timestamp", "desc")
-            .onSnapshot(snapshot => {
-                bucketList.innerHTML = '';
-                snapshot.forEach(doc => {
-                    createBucketElement(doc.id, doc.data());
-                });
+    // Event Listener'ı güvenli bir şekilde ekle
+    if (addBucketBtn) {
+        addBucketBtn.addEventListener('click', addBucketItem);
+    }
+
+    async function addBucketItem() {
+        const text = bucketInput.value.trim();
+        if (!text) return;
+
+        if (isFirebaseActive) {
+            await db.collection("bucket_list").add({
+                text: text,
+                completed: false,
+                timestamp: new Date().toISOString()
             });
-    } else {
-        const items = JSON.parse(localStorage.getItem('bucket_list') || '[]');
-        items.forEach(item => createBucketElement(item.id, item));
+        } else {
+            try {
+                const items = JSON.parse(localStorage.getItem('bucket_list') || '[]');
+                items.push({ id: Date.now().toString(), text: text, completed: false });
+                localStorage.setItem('bucket_list', JSON.stringify(items));
+                renderBucketList();
+            } catch (error) {
+                console.error("LocalStorage hatası:", error);
+                alert("KAYIT HATASI: " + error.name + "\nDetay: " + error.message);
+            }
+        }
+        bucketInput.value = '';
     }
-}
 
-function createBucketElement(id, data) {
-    const item = document.createElement('div');
-    item.className = `bucket-item ${data.completed ? 'completed' : ''}`;
-    item.innerHTML = `
+    function renderBucketList() {
+        if (!bucketList) return;
+        bucketList.innerHTML = '';
+
+        if (isFirebaseActive) {
+            if (unsubscribeBucket) unsubscribeBucket();
+
+            unsubscribeBucket = db.collection("bucket_list")
+                .orderBy("timestamp", "desc")
+                .onSnapshot(snapshot => {
+                    bucketList.innerHTML = '';
+                    snapshot.forEach(doc => {
+                        createBucketElement(doc.id, doc.data());
+                    });
+                });
+        } else {
+            const items = JSON.parse(localStorage.getItem('bucket_list') || '[]');
+            items.forEach(item => createBucketElement(item.id, item));
+        }
+    }
+
+    function createBucketElement(id, data) {
+        const item = document.createElement('div');
+        item.className = `bucket-item ${data.completed ? 'completed' : ''}`;
+        item.innerHTML = `
         <input type="checkbox" class="bucket-checkbox" ${data.completed ? 'checked' : ''} onchange="toggleBucketItem('${id}', this.checked)">
         <span class="bucket-text">${data.text}</span>
         <button class="delete-btn" onclick="deleteBucketItem('${id}')">🗑️</button>
     `;
-    bucketList.appendChild(item);
-}
+        bucketList.appendChild(item);
+    }
 
-window.toggleBucketItem = async function (id, isChecked) {
-    if (isChecked) {
-        // KONFETİ PATLAT! 🎉
-        if (typeof confetti === 'function') {
-            confetti({
-                particleCount: 100,
-                spread: 70,
-                origin: { y: 0.6 }
-            });
+    window.toggleBucketItem = async function (id, isChecked) {
+        if (isChecked) {
+            // KONFETİ PATLAT! 🎉
+            if (typeof confetti === 'function') {
+                confetti({
+                    particleCount: 100,
+                    spread: 70,
+                    origin: { y: 0.6 }
+                });
+            }
         }
-    }
 
-    if (isFirebaseActive) {
-        await db.collection("bucket_list").doc(id).update({ completed: isChecked });
-    } else {
-        const items = JSON.parse(localStorage.getItem('bucket_list') || '[]');
-        const item = items.find(i => i.id === id);
-        if (item) item.completed = isChecked;
-        localStorage.setItem('bucket_list', JSON.stringify(items));
-        renderBucketList();
-    }
-};
-
-window.deleteBucketItem = async function (id) {
-    if (confirm("Bu maddeyi silmek istiyor musun?")) {
         if (isFirebaseActive) {
-            await db.collection("bucket_list").doc(id).delete();
+            await db.collection("bucket_list").doc(id).update({ completed: isChecked });
         } else {
-            let items = JSON.parse(localStorage.getItem('bucket_list') || '[]');
-            items = items.filter(i => i.id !== id);
+            const items = JSON.parse(localStorage.getItem('bucket_list') || '[]');
+            const item = items.find(i => i.id === id);
+            if (item) item.completed = isChecked;
             localStorage.setItem('bucket_list', JSON.stringify(items));
             renderBucketList();
         }
-    }
-};
+    };
 
-// Sayfa geçişlerinde listeyi yükle
-const observer = new MutationObserver((mutations) => {
-    mutations.forEach((mutation) => {
-        if (mutation.target.id === 'bucket-list-page' &&
-            mutation.target.classList.contains('active-page') &&
-            !mutation.oldValue.includes('active-page')) {
-            renderBucketList();
+    window.deleteBucketItem = async function (id) {
+        if (confirm("Bu maddeyi silmek istiyor musun?")) {
+            if (isFirebaseActive) {
+                await db.collection("bucket_list").doc(id).delete();
+            } else {
+                let items = JSON.parse(localStorage.getItem('bucket_list') || '[]');
+                items = items.filter(i => i.id !== id);
+                localStorage.setItem('bucket_list', JSON.stringify(items));
+                renderBucketList();
+            }
         }
-    });
-});
+    };
 
-const bucketPage = document.getElementById('bucket-list-page');
-if (bucketPage) {
-    observer.observe(bucketPage, { attributes: true, attributeFilter: ['class'], attributeOldValue: true });
-    if (bucketPage.classList.contains('active-page')) renderBucketList();
-}
+    // Sayfa geçişlerinde listeyi yükle
+    const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+            if (mutation.target.id === 'bucket-list-page' &&
+                mutation.target.classList.contains('active-page') &&
+                !mutation.oldValue.includes('active-page')) {
+                renderBucketList();
+            }
+        });
+    });
+
+    const bucketPage = document.getElementById('bucket-list-page');
+    if (bucketPage) {
+        observer.observe(bucketPage, { attributes: true, attributeFilter: ['class'], attributeOldValue: true });
+        if (bucketPage.classList.contains('active-page')) renderBucketList();
+    }
 
 // --- VERİ YÖNETİMİ & AYARLAR ---
-const settingsPage = document.getElementById('settings-page');
-const storageBar = document.getElementById('storage-bar');
-const storageText = document.getElementById('storage-text');
-const countPhotos = document.getElementById('count-photos');
-const countMemories = document.getElementById('count-memories');
-const countBucket = document.getElementById('count-bucket');
-const clearPhotosBtn = document.getElementById('clear-photos-btn');
-const resetAppBtn = document.getElementById('reset-app-btn');
-
-function calculateStorage() {
-    let total = 0;
-    for (const key in localStorage) {
-        if (localStorage.hasOwnProperty(key)) {
-            total += ((localStorage[key].length + key.length) * 2);
-        }
-    }
-    // 5MB = 5 * 1024 * 1024 bytes (yaklaşık)
-    // Karakter başına 2 byte (UTF-16)
-    const max = 5 * 1024 * 1024;
-    const percentage = Math.min((total / max) * 100, 100).toFixed(1);
-    const usedMB = (total / (1024 * 1024)).toFixed(2);
-
-    storageBar.style.width = `${percentage}%`;
-    storageText.textContent = `Kullanılan: ${usedMB} MB / 5.0 MB (%${percentage})`;
-
-    if (percentage > 90) {
-        storageBar.classList.add('full');
-        storageBar.classList.remove('high');
-    } else if (percentage > 70) {
-        storageBar.classList.add('high');
-        storageBar.classList.remove('full');
-    } else {
-        storageBar.classList.remove('high', 'full');
-    }
-}
-
-function updateDataCounts() {
-    const photos = JSON.parse(localStorage.getItem('photos') || '[]');
-    const memories = JSON.parse(localStorage.getItem('memories') || '[]');
-    const bucket = JSON.parse(localStorage.getItem('bucket_list') || '[]');
-
-    countPhotos.textContent = photos.length;
-    countMemories.textContent = memories.length;
-    countBucket.textContent = bucket.length;
-}
-
-// Ayarlar Sayfası Görüntülendiğinde Çalıştır
-const settingsObserver = new MutationObserver((mutations) => {
-    mutations.forEach((mutation) => {
-        if (mutation.target.id === 'settings-page' &&
-            mutation.target.classList.contains('active-page')) {
-            calculateStorage();
-            updateDataCounts();
-        }
-    });
-});
-
-if (settingsPage) {
-    settingsObserver.observe(settingsPage, { attributes: true, attributeFilter: ['class'] });
-}
-
-clearPhotosBtn.addEventListener('click', () => {
-    const photoCount = JSON.parse(localStorage.getItem('photos') || '[]').length;
-    if (photoCount === 0) {
-        alert("Silinecek fotoğraf yok.");
-        return;
-    }
-
-    if (confirm(`${photoCount} fotoğrafın tamamı silinecek. Anıların ve listen kalacak. Emin misin?`)) {
-        localStorage.removeItem('photos');
-        alert("Tüm fotoğraflar silindi. Yer açıldı! 🚀");
-        calculateStorage();
-        updateDataCounts();
-        renderPhotos(); // Albümü güncelle (boşalacak)
-    }
-});
-
-resetAppBtn.addEventListener('click', () => {
-    if (confirm("DİKKAT! Tüm anılar, fotoğraflar ve her şey silinecek. Fabrika ayarlarına dönülecek. Emin misin?")) {
-        if (confirm("Son kez soruyorum: Her şey silinsin mi?")) {
-            localStorage.clear();
-            location.reload();
-        }
-    }
-});
-
-// --- DEBUG & LOGGING SYSTEM ---
-const consoleDiv = document.getElementById('console-log');
-const toggleFirebaseBtn = document.getElementById('toggle-firebase-btn');
-
-// Ekrana Log Basma Fonksiyonu
-function logToScreen(msg, type = 'info') {
-    if (!consoleDiv) return;
-    const p = document.createElement('div');
-    p.textContent = `> ${msg}`;
-    p.style.color = type === 'error' ? '#ff5555' : '#55ff55';
-    p.style.marginBottom = '5px';
-    p.style.borderBottom = '1px solid #333';
-    consoleDiv.prepend(p); // En yeniyi en üste ekle
-}
-
-// Orijinal konsolu koruyarak ekrana da bas
-const originalLog = console.log;
-const originalError = console.error;
-
-console.log = function (...args) {
-    originalLog.apply(console, args);
-    logToScreen(args.join(' '));
-};
-
-console.error = function (...args) {
-    originalError.apply(console, args);
-    logToScreen(args.join(' '), 'error');
-};
-
-console.log("Debug sistemi aktif edildi.");
-console.log("Firebase Veri Tabanı: " + (isFirebaseActive ? "AKTİF ✅" : "PASİF ❌ (Yerel Hafıza)"));
-
-// Firebase Toggle
-if (toggleFirebaseBtn) {
-    toggleFirebaseBtn.textContent = isFirebaseActive ? "Firebase: AÇIK (Kapatmak için tıkla)" : "Firebase: KAPALI (Yerel Mod)";
-    toggleFirebaseBtn.addEventListener('click', () => {
-        isFirebaseActive = !isFirebaseActive;
-        console.log("Firebase durumu değiştirildi: " + (isFirebaseActive ? "AÇIK" : "KAPALI"));
-        toggleFirebaseBtn.textContent = isFirebaseActive ? "Firebase: AÇIK (Kapatmak için tıkla)" : "Firebase: KAPALI (Yerel Mod)";
-        alert("Mod değiştirildi: " + (isFirebaseActive ? "Bulut (Firebase)" : "Yerel (Telefon)"));
-    });
-}
-
-// Butonlara Log Ekleme (Hata İzleme İçin)
-if (addNoteBtn) {
-    addNoteBtn.addEventListener('click', () => {
-        console.log("Anı Kaydet butonuna basıldı.");
-    });
-}
-
-if (photoUpload) {
-    photoUpload.addEventListener('click', () => {
-        console.log("Fotoğraf yükleme seçimi açıldı.");
-    });
-}
+// --- AYARLAR KALDIRILDI ---
+// (Veri yönetimi ve debug ekranı kullanıcı isteği üzerine gizlendi)

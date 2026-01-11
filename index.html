@@ -124,8 +124,8 @@
 
                 <div class="upload-card">
                     <label for="photo-upload" class="upload-btn">
-                        📸 Fotoğraf Ekle
-                        <input type="file" id="photo-upload" accept="image/*" multiple hidden>
+                        📸 Anı/Video Ekle
+                        <input type="file" id="photo-upload" accept="image/*,video/*" multiple hidden>
                     </label>
                 </div>
 
@@ -157,49 +157,6 @@
                 </div>
             </section>
 
-            <!-- 5. SETTINGS PAGE -->
-            <section id="settings-page" class="page hidden-page">
-                <h2>Veri Yönetimi & Ayarlar</h2>
-
-                <div class="settings-card">
-                    <h3>💾 Hafıza Durumu</h3>
-                    <div class="storage-bar-container">
-                        <div id="storage-bar" class="storage-bar"></div>
-                    </div>
-                    <p id="storage-text" class="status-text">Hesaplanıyor...</p>
-                </div>
-
-                <div class="settings-card">
-                    <h3>📊 Veri Özeti</h3>
-                    <ul class="data-summary">
-                        <li>📸 Kayıtlı Fotoğraf: <span id="count-photos">0</span></li>
-                        <li>📖 Kayıtlı Anı: <span id="count-memories">0</span></li>
-                        <li>✨ Hedef Maddesi: <span id="count-bucket">0</span></li>
-                    </ul>
-                </div>
-
-                <div class="settings-card danger-zone">
-                    <h3>⚠️ Alan Aç</h3>
-                    <p>Hafıza doluysa fotoğraf yükleyemezsin. Aşağıdaki buton sadece fotoğrafları siler, anıların kalır.
-                    </p>
-                    <button id="clear-photos-btn" class="danger-btn">🗑️ Tüm Fotoğrafları Sil</button>
-                    <br><br>
-                    <br><br>
-                    <p>Uygulamayı sıfırlamak istersen (Her şey silinir):</p>
-                    <button id="reset-app-btn" class="danger-btn-outline">Sıfırla & Başa Dön</button>
-                </div>
-
-                <div class="settings-card">
-                    <h3>🐞 Hata Ayıklama (Debug)</h3>
-                    <button id="toggle-firebase-btn" class="primary-btn" style="margin-bottom:10px;">Firebase Durumu:
-                        Kontrol Ediliyor...</button>
-                    <div id="console-log"
-                        style="background:#000; color:#0f0; padding:10px; border-radius:10px; font-family:monospace; font-size:0.8rem; height:200px; overflow-y:scroll;">
-                        > Sistem Hazır...
-                    </div>
-                </div>
-            </section>
-
         </main>
     </div>
 
@@ -217,7 +174,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
 
-    <script src="script.js?v=100"></script>
+    <script src="script.js?v=1003"></script>
 </body>
 
 </html>
