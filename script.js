@@ -457,8 +457,8 @@ if (photoUpload) {
 
                 if (isVideo) {
                     // Video ise küçültme yapmadan direkt oku (Boyut kontrolü eklenebilir)
-                    if (file.size > 15 * 1024 * 1024) { // 15MB Limit
-                        alert(`Video çok büyük (${(file.size / 1024 / 1024).toFixed(1)}MB). Max 15MB yükleyebilirsin.`);
+                    if (file.size > 50 * 1024 * 1024) { // 50MB Limit
+                        alert(`Video çok büyük (${(file.size / 1024 / 1024).toFixed(1)}MB). Max 50MB yükleyebilirsin.`);
                         continue;
                     }
                     contentBase64 = await readFileAsDataURL(file);
